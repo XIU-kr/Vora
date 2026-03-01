@@ -422,6 +422,13 @@ function healthPayload() {
 }
 
 app.get('/health', (_req, res) => {
+  if (!lamaWorker.isReady()) {
+    res.status(503).json({
+      ...healthPayload(),
+      error: 'Worker initializing',
+    })
+    return
+  }
   res.json(healthPayload())
 })
 
@@ -431,6 +438,11 @@ app.get('/api/health', (_req, res) => {
       // eslint-disable-next-line no-console
       console.error(`[lama-worker] health retry failed: ${String(e)}`)
     })
+    res.status(503).json({
+      ...healthPayload(),
+      error: 'Worker initializing',
+    })
+    return
   }
   res.json(healthPayload())
 })
@@ -524,11 +536,18 @@ app.get('*', (_req, res) => {
   res.sendFile(path.join(webDist, 'index.html'))
 })
 
-app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Vora AI server listening on http://localhost:${PORT}`)
-  lamaWorker.ensureReady().catch((e) => {
+async function startServer() {
+  try {
+    await lamaWorker.ensureReady()
+    app.listen(PORT, () => {
+      // eslint-disable-next-line no-console
+      console.log(`Vora AI server listening on http://localhost:${PORT}`)
+    })
+  } catch (e) {
     // eslint-disable-next-line no-console
-    console.error(`Failed to initialize LaMa worker: ${String(e)}`)
-  })
-})
+    console.error(`Failed to initialize LaMa worker before startup: ${String(e)}`)
+    process.exit(1)
+  }
+}
+
+void startServer()

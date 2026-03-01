@@ -13,6 +13,10 @@ export async function inpaintViaApi(opts: {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
+    const cloudflareTimeout = /error code\s*524|a timeout occurred/i.test(text)
+    if (cloudflareTimeout) {
+      throw new Error('ERR_INPAINT_HTTP:524:Cloudflare timeout (origin response exceeded proxy timeout). Check backend container health and /api proxy route.')
+    }
     throw new Error(`ERR_INPAINT_HTTP:${res.status}:${text}`)
   }
 
@@ -43,6 +47,10 @@ export async function segmentPointViaApi(opts: {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
+    const cloudflareTimeout = /error code\s*524|a timeout occurred/i.test(text)
+    if (cloudflareTimeout) {
+      throw new Error('ERR_SEGMENT_HTTP:524:Cloudflare timeout (origin response exceeded proxy timeout). Check backend container health and /api proxy route.')
+    }
     throw new Error(`ERR_SEGMENT_HTTP:${res.status}:${text}`)
   }
 
