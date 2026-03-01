@@ -52,5 +52,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           sbom: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=registry,ref=docker.io/xiukr/vora:cache-web-build
+            type=registry,ref=docker.io/xiukr/vora:cache-server-build
+            type=registry,ref=docker.io/xiukr/vora:cache-runtime
+          cache-to: |
+            type=registry,ref=docker.io/xiukr/vora:cache-web-build,mode=max,ignore-error=true
+            type=registry,ref=docker.io/xiukr/vora:cache-server-build,mode=max,ignore-error=true
+            type=registry,ref=docker.io/xiukr/vora:cache-runtime,mode=max,ignore-error=true
