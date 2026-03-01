@@ -4074,15 +4074,6 @@ function App() {
     })
   }
 
-  function setLockForSelectedTextLayers(locked: boolean) {
-    if (!active || selectedTextIds.length === 0) return
-    const selectedSet = new Set(selectedTextIds)
-    updateActiveWithHistory('Toggle text lock', (a) => ({
-      ...a,
-      texts: a.texts.map((t) => (selectedSet.has(t.id) ? { ...t, locked } : t)),
-    }))
-  }
-
   function alignSelectedTextLayers(mode: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') {
     if (!active || selectedTextIds.length === 0) return
     const selectedSet = new Set(selectedTextIds)
@@ -6769,39 +6760,6 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
               </button>
               {!quickBarCollapsed ? (
                 <>
-                  <label className="srOnly" htmlFor="text-font-search">{ui.fontSearchPlaceholder}</label>
-                  <input
-                    id="text-font-search"
-                    className="input quickFontSearch"
-                    type="search"
-                    value={fontSearchQuery}
-                    onChange={(e) => setFontSearchQuery(e.target.value)}
-                    placeholder={ui.fontSearchPlaceholder}
-                    aria-label={ui.fontSearchPlaceholder}
-                  />
-                  <label className="srOnly" htmlFor="text-font-preset">{ui.fontPresetLabel}</label>
-                  <select
-                    id="text-font-preset"
-                    className="select quickFontPreset"
-                    title={ui.fontPresetLabel}
-                    aria-label={ui.fontPresetLabel}
-                    disabled={selectedText.locked}
-                    value={resolveTextFontPreset(selectedText)}
-                    onChange={(e) => {
-                      const preset = TEXT_FONT_PRESETS.find((item) => item.id === e.target.value)
-                      if (!preset) return
-                      ensureGoogleWebFontLoaded(preset.family)
-                      updateSelectedText({ fontFamily: preset.family, fontWeight: preset.weight })
-                    }}
-                  >
-                    {groupedTextFontPresets.map((group) => (
-                      <optgroup key={group.category} label={group.label}>
-                        {group.presets.map((preset) => (
-                          <option key={preset.id} value={preset.id}>{preset.label}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
                   <div className="quickBarGroup">
                     <button className={`iconMini ${selectedText.align === 'left' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'left' })} aria-label={ui.alignLeft}><span aria-hidden="true">↤</span><span className="srOnly">{ui.alignLeft}</span></button>
                     <button className={`iconMini ${selectedText.align === 'center' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'center' })} aria-label={ui.alignCenter}><span aria-hidden="true">↔</span><span className="srOnly">{ui.alignCenter}</span></button>
@@ -6812,27 +6770,6 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     <button className="iconMini" disabled={selectedText.locked} onClick={() => updateSelectedText({ fontWeight: 700 })} aria-label={ui.fontWeightBold}><span aria-hidden="true">B</span><span className="srOnly">{ui.fontWeightBold}</span></button>
                     <button className={`iconMini ${selectedText.fontStyle === 'italic' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ fontStyle: selectedText.fontStyle === 'italic' ? 'normal' : 'italic' })} aria-label={ui.italicLabel}><span aria-hidden="true">I</span><span className="srOnly">{ui.italicLabel}</span></button>
                   </div>
-                  <label className="quickColor" title={ui.textColor} aria-label={ui.textColor}>
-                    <input type="color" value={selectedText.fill} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ fill: e.target.value })} />
-                  </label>
-                  <label className="quickColor" title={ui.textBorderColor} aria-label={ui.textBorderColor}>
-                    <input type="color" value={resolveTextOutlineColor(selectedText)} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ outlineColor: e.target.value })} />
-                  </label>
-                  <label className="quickColor" title={ui.textBackgroundColor} aria-label={ui.textBackgroundColor}>
-                    <input type="color" value={resolveTextBackgroundColor(selectedText)} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ backgroundColor: e.target.value })} />
-                  </label>
-                  <label className="quickOpacity" title={ui.textBackgroundOpacity} aria-label={ui.textBackgroundOpacity}>
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={1}
-                      value={Math.round(resolveTextBackgroundOpacity(selectedText) * 100)}
-                      disabled={selectedText.locked}
-                      onChange={(e) => updateSelectedText({ backgroundOpacity: clamp(Number(e.target.value) / 100, 0, 1) })}
-                    />
-                    <span>{Math.round(resolveTextBackgroundOpacity(selectedText) * 100)}%</span>
-                  </label>
                 </>
               ) : null}
             </div>
@@ -7592,6 +7529,83 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
             {tool !== 'eraser' && tool !== 'restore' && tool !== 'select' ? (
             <div className="row layerRow">
               <div className="label">{ui.textLayers}</div>
+              {selectedText ? (
+                <div className="textOptionGroup textToolRow">
+                  <div className="textOptionTitle label">{ui.selectedText}</div>
+                  <label className="srOnly" htmlFor="text-font-search-panel">{ui.fontSearchPlaceholder}</label>
+                  <input
+                    id="text-font-search-panel"
+                    className="input quickFontSearch"
+                    type="search"
+                    value={fontSearchQuery}
+                    onChange={(e) => setFontSearchQuery(e.target.value)}
+                    placeholder={ui.fontSearchPlaceholder}
+                    aria-label={ui.fontSearchPlaceholder}
+                  />
+                  <label className="srOnly" htmlFor="text-font-preset-panel">{ui.fontPresetLabel}</label>
+                  <select
+                    id="text-font-preset-panel"
+                    className="select quickFontPreset"
+                    title={ui.fontPresetLabel}
+                    aria-label={ui.fontPresetLabel}
+                    disabled={selectedText.locked}
+                    value={resolveTextFontPreset(selectedText)}
+                    onChange={(e) => {
+                      const preset = TEXT_FONT_PRESETS.find((item) => item.id === e.target.value)
+                      if (!preset) return
+                      ensureGoogleWebFontLoaded(preset.family)
+                      updateSelectedText({ fontFamily: preset.family, fontWeight: preset.weight })
+                    }}
+                  >
+                    {groupedTextFontPresets.map((group) => (
+                      <optgroup key={group.category} label={group.label}>
+                        {group.presets.map((preset) => (
+                          <option
+                            key={preset.id}
+                            value={preset.id}
+                            style={{ fontFamily: `"${preset.family}", "Pretendard", "Noto Sans KR", sans-serif` }}
+                          >
+                            {preset.label}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <div className="alignToggleRow">
+                    <button className={`btn ${selectedText.align === 'left' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'left' })} aria-label={ui.alignLeft}>{ui.alignLeft}</button>
+                    <button className={`btn ${selectedText.align === 'center' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'center' })} aria-label={ui.alignCenter}>{ui.alignCenter}</button>
+                    <button className={`btn ${selectedText.align === 'right' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'right' })} aria-label={ui.alignRight}>{ui.alignRight}</button>
+                  </div>
+                  <div className="weightPresetRow">
+                    <button className="btn" disabled={selectedText.locked} onClick={() => updateSelectedText({ fontWeight: 400 })} aria-label={ui.fontWeightRegular}>{ui.fontWeightRegular}</button>
+                    <button className="btn" disabled={selectedText.locked} onClick={() => updateSelectedText({ fontWeight: 700 })} aria-label={ui.fontWeightBold}>{ui.fontWeightBold}</button>
+                  </div>
+                  <button className={`btn textItalicBtn ${selectedText.fontStyle === 'italic' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ fontStyle: selectedText.fontStyle === 'italic' ? 'normal' : 'italic' })} aria-label={ui.italicLabel}>{ui.italicLabel}</button>
+                  <div className="swatchRow">
+                    <label className="quickColor" title={ui.textColor} aria-label={ui.textColor}>
+                      <input type="color" value={selectedText.fill} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ fill: e.target.value })} />
+                    </label>
+                    <label className="quickColor" title={ui.textBorderColor} aria-label={ui.textBorderColor}>
+                      <input type="color" value={resolveTextOutlineColor(selectedText)} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ outlineColor: e.target.value })} />
+                    </label>
+                    <label className="quickColor" title={ui.textBackgroundColor} aria-label={ui.textBackgroundColor}>
+                      <input type="color" value={resolveTextBackgroundColor(selectedText)} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ backgroundColor: e.target.value })} />
+                    </label>
+                  </div>
+                  <label className="quickOpacity" title={ui.textBackgroundOpacity} aria-label={ui.textBackgroundOpacity}>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={Math.round(resolveTextBackgroundOpacity(selectedText) * 100)}
+                      disabled={selectedText.locked}
+                      onChange={(e) => updateSelectedText({ backgroundOpacity: clamp(Number(e.target.value) / 100, 0, 1) })}
+                    />
+                    <span>{Math.round(resolveTextBackgroundOpacity(selectedText) * 100)}%</span>
+                  </label>
+                </div>
+              ) : null}
               {selectedTextIds.length > 0 ? (
                 <div className="label">{ui.layerBulkActions}</div>
               ) : null}
@@ -7604,8 +7618,6 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   <button className="btn ghost" onClick={() => alignSelectedTextLayers('middle')}>{ui.layerAlignMiddle}</button>
                   <button className="btn ghost" onClick={() => alignSelectedTextLayers('bottom')}>{ui.layerAlignBottom}</button>
                   <button className="btn ghost" onClick={duplicateSelectedTextLayers}>{ui.layerDuplicateSelected}</button>
-                  <button className="btn ghost" onClick={() => setLockForSelectedTextLayers(true)}>{ui.layerLockSelected}</button>
-                  <button className="btn ghost" onClick={() => setLockForSelectedTextLayers(false)}>{ui.layerUnlockSelected}</button>
                 </div>
               ) : null}
               <div className="layerList layerListCompact">
