@@ -4839,6 +4839,43 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     }
   }
 
+  async function autoRemoveBackground() {
+    if (!active) return
+    setBusy(ui.selectionRunning); setStatus(ui.selectionRunning)
+    runCancelableStart()
+    setProgressState({ label: ui.autoBgRemove, value: 0, total: 2, indeterminate: false })
+    try {
+      const imageBlob = await dataUrlToBlob(active.baseDataUrl)
+      setProgressState({ label: ui.autoBgRemove, value: 1, total: 2, indeterminate: false })
+      const maskBlob = await segmentPointViaApi({ image: imageBlob, pointX: Math.round(active.width / 2), pointY: Math.round(active.height / 2) })
+      const maskUrl = await blobToDataUrl(maskBlob)
+      const baseImage = await loadHtmlImage(active.baseDataUrl)
+      const maskImage = await loadHtmlImage(maskUrl)
+      const w = active.width; const h = active.height
+      const wCanvas = document.createElement('canvas'); wCanvas.width = w; wCanvas.height = h
+      const wCtx = wCanvas.getContext('2d')!
+      wCtx.drawImage(baseImage, 0, 0)
+      const baseData = wCtx.getImageData(0, 0, w, h)
+      const mCanvas = document.createElement('canvas'); mCanvas.width = w; mCanvas.height = h
+      const mCtx = mCanvas.getContext('2d')!
+      mCtx.drawImage(maskImage, 0, 0)
+      const maskData = mCtx.getImageData(0, 0, w, h).data
+      const out = baseData.data
+      for (let i = 0; i < out.length; i += 4) {
+        if ((maskData[i] ?? 0) <= 8) out[i + 3] = 0
+      }
+      wCtx.putImageData(baseData, 0, 0)
+      const resultUrl = wCanvas.toDataURL('image/png')
+      setProgressState({ label: ui.autoBgRemove, value: 2, total: 2, indeterminate: false })
+      updateActiveWithHistory('Auto BG remove', (a) => ({ ...a, baseDataUrl: resultUrl }))
+      setStatus(ui.done)
+    } catch (e) {
+      setStatus(localizeErrorMessage(String(e instanceof Error ? e.message : e)))
+    } finally {
+      setBusy(null); setProgressState(null); runCancelableEnd()
+    }
+  }
+
   async function invertSelection() {
     if (!active || !selectionMaskDataUrl) return
     const img = await loadHtmlImage(selectionMaskDataUrl)
@@ -7453,6 +7490,9 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
               {tool === 'select' ? (
                 <>
+                  <div className="buttonRow">
+                    <button className="btn primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
+                  </div>
                   <div className="hint">{selectionMaskDataUrl ? ui.selectionToolHintHasSelection : ui.selectionToolHint}</div>
                   <div className="hint">
                     {ui.aiPreviewArea}: {selectionMaskBounds ? `${selectionMaskBounds.width} x ${selectionMaskBounds.height}` : '-'}
