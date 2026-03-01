@@ -15,16 +15,16 @@ RUN npm run build
 FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04 AS runtime
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV PORT=18743
-ENV VORA_DEVICE=auto
-ENV VORA_SAM_MODEL=vit_l
-ENV VORA_LAMA_FP16=0
-ENV VORA_PYTHON=/opt/venv-lama/bin/python
-ENV VORA_WORKER_TIMEOUT_MS=600000
-ENV VORA_BOOT_TIMEOUT_MS=600000
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Etc/UTC
+ENV NODE_ENV=production \
+    PORT=18743 \
+    VORA_DEVICE=auto \
+    VORA_SAM_MODEL=vit_l \
+    VORA_LAMA_FP16=0 \
+    VORA_PYTHON=/opt/venv-lama/bin/python \
+    VORA_WORKER_TIMEOUT_MS=600000 \
+    VORA_BOOT_TIMEOUT_MS=600000 \
+    DEBIAN_FRONTEND=noninteractive \
+    TZ=Etc/UTC
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -41,13 +41,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
 
-# LaMa runtime env (GPU-first with CPU fallback).
+# Create venv and install heavy torch separately for caching
 RUN python3 -m venv /opt/venv-lama \
   && /opt/venv-lama/bin/python -m pip install --no-cache-dir --upgrade "pip>=24.3.1" "setuptools>=78.1.1" "wheel>=0.46.3" \
   && /opt/venv-lama/bin/python -m pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cu128 \
-    torch==2.9.1 torchvision==0.24.1 \
-  && /opt/venv-lama/bin/python -m pip install --no-cache-dir \
+    torch==2.9.1 torchvision==0.24.1
+
+# Install lighter python deps
+RUN /opt/venv-lama/bin/python -m pip install --no-cache-dir \
     fire==0.5.0 "pillow>=11.0.0" "filelock>=3.20.3" numpy==1.26.4 opencv-python==4.10.0.84 "transformers>=4.45.0" \
   && /opt/venv-lama/bin/python -m pip install --no-cache-dir \
     --no-deps simple-lama-inpainting==0.1.2 \
@@ -61,5 +63,4 @@ COPY --from=server-build /src/server/python /app/server/python
 COPY --from=web-build /src/web/dist /app/web/dist
 
 EXPOSE 18743
-
 CMD ["node", "server/dist/index.js"]
