@@ -207,10 +207,10 @@ def _run_segment_point_sam2(image_np: np.ndarray, point_x: int, point_y: int) ->
     if masks is None or len(masks) == 0:
         raise RuntimeError("SAM2 returned no masks")
 
-        best_idx = int(np.argmax(scores)) if scores is not None and len(scores) > 0 else 0
-        if best_idx >= len(masks):
-            best_idx = 0
-        best_mask = masks[best_idx]
+    best_idx = int(np.argmax(scores)) if scores is not None and len(scores) > 0 else 0
+    if best_idx >= len(masks):
+        best_idx = 0
+    best_mask = masks[best_idx]
     mask_u8 = (best_mask.astype(np.uint8) * 255)
     return Image.fromarray(mask_u8, mode="L")
 
