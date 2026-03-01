@@ -1,6 +1,6 @@
 import { type DragEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react'
 import Konva from 'konva'
-import { Circle, Image as KonvaImage, Layer, Line, Stage, Text, Group, Rect, Transformer } from 'react-konva'
+import { Circle, Ellipse, Image as KonvaImage, Layer, Line, Stage, Text, Group, Rect, Transformer } from 'react-konva'
 import { jsPDF } from 'jspdf'
 import PptxGenJS from 'pptxgenjs'
 
@@ -1131,6 +1131,10 @@ const UI = {
     lockAspect: '비율 고정',
     applyResize: '적용',
     resizing: '크기 조정 중…',
+    selectModeAI: 'AI 선택',
+    selectModeRect: '사각형',
+    selectModeEllipse: '타원',
+    selectModeLasso: '올가미',
     aiPreviewTitle: 'AI 실행 미리보기',
     aiPreviewConfirm: '선택 영역에 실행할까요?',
     aiPreviewArea: '대상 영역',
@@ -1574,6 +1578,10 @@ const UI = {
     lockAspect: 'Lock aspect ratio',
     applyResize: 'Apply Resize',
     resizing: 'Resizing…',
+    selectModeAI: 'AI Select',
+    selectModeRect: 'Rectangle',
+    selectModeEllipse: 'Ellipse',
+    selectModeLasso: 'Lasso',
     aiPreviewTitle: 'AI action preview',
     aiPreviewConfirm: 'Run on selected area?',
     aiPreviewArea: 'Target area',
@@ -1916,6 +1924,11 @@ function App() {
   const [antsDashOffset, setAntsDashOffset] = useState(0)
   const [expandContractRadius, setExpandContractRadius] = useState(5)
   const [featherRadius, setFeatherRadius] = useState(5)
+  const [selectMode, setSelectMode] = useState<'ai' | 'rect' | 'ellipse' | 'lasso'>('ai')
+  const marqueeStartRef = useRef<{ x: number; y: number } | null>(null)
+  const [marqueeRect, setMarqueeRect] = useState<CropRect | null>(null)
+  const [lassoPoints, setLassoPoints] = useState<number[]>([])
+  const lassoActiveRef = useRef(false)
   const [resizeWidth, setResizeWidth] = useState(0)
   const [resizeHeight, setResizeHeight] = useState(0)
   const [resizeLockAspect, setResizeLockAspect] = useState(true)
@@ -3134,10 +3147,12 @@ function App() {
   }, [active, selectionMaskDataUrl])
 
   useEffect(() => {
-    if (tool !== 'select' || !selectionMaskBounds) { setAntsDashOffset(0); return }
-    const id = setInterval(() => setAntsDashOffset(d => (d + 1) % 16), 60)
+    const hasSelection = !!selectionMaskBounds || !!marqueeRect
+    if (tool !== 'select' || !hasSelection) { setAntsDashOffset(0); return }
+    const id = setInterval(() => setAntsDashOffset((d) => (d + 1) % 16), 60)
     return () => clearInterval(id)
-  }, [tool, !!selectionMaskBounds])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool, !!selectionMaskBounds, !!marqueeRect])
 
   useEffect(() => {
     if (tool === 'crop') return
@@ -4468,8 +4483,16 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     if (tool === 'select') {
       const xy = pointerToImageXY(stage)
       if (!xy) return
-      const mode = e.evt.altKey ? 'subtract' : 'add'
-      void runSelectionAtPoint(xy.x, xy.y, mode)
+      if (selectMode === 'ai') {
+        const mode = e.evt.altKey ? 'subtract' : 'add'
+        void runSelectionAtPoint(xy.x, xy.y, mode)
+      } else if (selectMode === 'lasso') {
+        lassoActiveRef.current = true
+        setLassoPoints([xy.x, xy.y])
+      } else {
+        marqueeStartRef.current = { x: xy.x, y: xy.y }
+        setMarqueeRect({ x: xy.x, y: xy.y, width: 1, height: 1 })
+      }
       return
     }
 
@@ -4572,6 +4595,21 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
     updateBrushCursor(stage)
 
+    if (tool === 'select') {
+      if ((selectMode === 'rect' || selectMode === 'ellipse') && marqueeStartRef.current && active) {
+        const xy = pointerToImageXY(stage)
+        if (!xy) return
+        setMarqueeRect(rectFromPoints(marqueeStartRef.current.x, marqueeStartRef.current.y, xy.x, xy.y, active.width, active.height))
+        return
+      }
+      if (selectMode === 'lasso' && lassoActiveRef.current) {
+        const xy = pointerToImageXY(stage)
+        if (!xy) return
+        setLassoPoints((pts) => [...pts, xy.x, xy.y])
+        return
+      }
+    }
+
     if (tool === 'crop') {
       autoPanDuringCrop(stage)
       const resize = cropResizeRef.current
@@ -4618,6 +4656,52 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     const hadMovePan = !!movePanRef.current
     movePanRef.current = null
     if (hadMovePan) startMoveMomentum()
+
+    if (tool === 'select' && marqueeStartRef.current) {
+      marqueeStartRef.current = null
+      const rect = marqueeRect
+      setMarqueeRect(null)
+      if (!rect || !active || rect.width < 2 || rect.height < 2) return
+      const canvas = document.createElement('canvas')
+      canvas.width = active.width; canvas.height = active.height
+      const ctx = canvas.getContext('2d')!
+      ctx.fillStyle = 'white'
+      if (selectMode === 'rect') {
+        ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
+      } else {
+        ctx.beginPath()
+        ctx.ellipse(rect.x + rect.width / 2, rect.y + rect.height / 2, rect.width / 2, rect.height / 2, 0, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      const newMaskUrl = canvas.toDataURL('image/png')
+      setSelectionMaskDataUrl(newMaskUrl)
+      const imgData = ctx.getImageData(0, 0, active.width, active.height)
+      const bounds = findNonZeroMaskBounds(imgData.data, active.width, active.height)
+      setSelectionMaskBounds(bounds)
+      return
+    }
+
+    if (tool === 'select' && lassoActiveRef.current) {
+      lassoActiveRef.current = false
+      const points = lassoPoints
+      setLassoPoints([])
+      if (!active || points.length < 6) return
+      const canvas = document.createElement('canvas')
+      canvas.width = active.width; canvas.height = active.height
+      const ctx = canvas.getContext('2d')!
+      ctx.fillStyle = 'white'
+      ctx.beginPath()
+      ctx.moveTo(points[0]!, points[1]!)
+      for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i]!, points[i + 1]!)
+      ctx.closePath()
+      ctx.fill()
+      const newMaskUrl = canvas.toDataURL('image/png')
+      setSelectionMaskDataUrl(newMaskUrl)
+      const imgData = ctx.getImageData(0, 0, active.width, active.height)
+      const bounds = findNonZeroMaskBounds(imgData.data, active.width, active.height)
+      setSelectionMaskBounds(bounds)
+      return
+    }
 
     if (tool === 'crop') {
       cropStartRef.current = null
@@ -7287,6 +7371,37 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                       />
                     </>
                   )}
+                  {tool === 'select' && marqueeRect && selectMode === 'rect' && (
+                    <Rect
+                      x={marqueeRect.x} y={marqueeRect.y}
+                      width={marqueeRect.width} height={marqueeRect.height}
+                      stroke="white" strokeWidth={1.5 / fit.scale}
+                      dash={[5 / fit.scale, 5 / fit.scale]}
+                      dashOffset={-antsDashOffset / fit.scale}
+                      fill="rgba(30,144,255,0.15)"
+                      listening={false}
+                    />
+                  )}
+                  {tool === 'select' && marqueeRect && selectMode === 'ellipse' && (
+                    <Ellipse
+                      x={marqueeRect.x + marqueeRect.width / 2}
+                      y={marqueeRect.y + marqueeRect.height / 2}
+                      radiusX={marqueeRect.width / 2} radiusY={marqueeRect.height / 2}
+                      stroke="white" strokeWidth={1.5 / fit.scale}
+                      dash={[5 / fit.scale, 5 / fit.scale]}
+                      dashOffset={-antsDashOffset / fit.scale}
+                      fill="rgba(30,144,255,0.15)"
+                      listening={false}
+                    />
+                  )}
+                  {tool === 'select' && selectMode === 'lasso' && lassoPoints.length >= 4 && (
+                    <Line
+                      points={lassoPoints}
+                      stroke="white" strokeWidth={1.5 / fit.scale}
+                      dash={[5 / fit.scale, 5 / fit.scale]}
+                      closed={false} listening={false}
+                    />
+                  )}
                   {active.maskStrokes.map((l) => (
                     <Line
                       key={l.id}
@@ -7623,6 +7738,12 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
               {tool === 'select' ? (
                 <>
+                  <div className="buttonRow">
+                    <button className={`btn ${selectMode === 'ai' ? 'active' : ''}`} onClick={() => setSelectMode('ai')}>{ui.selectModeAI}</button>
+                    <button className={`btn ${selectMode === 'rect' ? 'active' : ''}`} onClick={() => setSelectMode('rect')}>{ui.selectModeRect}</button>
+                    <button className={`btn ${selectMode === 'ellipse' ? 'active' : ''}`} onClick={() => setSelectMode('ellipse')}>{ui.selectModeEllipse}</button>
+                    <button className={`btn ${selectMode === 'lasso' ? 'active' : ''}`} onClick={() => setSelectMode('lasso')}>{ui.selectModeLasso}</button>
+                  </div>
                   <div className="buttonRow">
                     <button className="btn primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
                   </div>
