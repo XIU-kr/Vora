@@ -1139,6 +1139,7 @@ const UI = {
     shortcutZoomOut: '줌 아웃 (-)',
     shortcutZoomReset: '줌 초기화 (Ctrl+0)',
     shortcutFitSelection: '선택 영역 맞춤 (F)',
+    toggleGrid: '그리드 토글 (G)',
     aiPreviewTitle: 'AI 실행 미리보기',
     aiPreviewConfirm: '선택 영역에 실행할까요?',
     aiPreviewArea: '대상 영역',
@@ -1590,6 +1591,7 @@ const UI = {
     shortcutZoomOut: 'Zoom out (-)',
     shortcutZoomReset: 'Reset zoom (Ctrl+0)',
     shortcutFitSelection: 'Fit to selection (F)',
+    toggleGrid: 'Toggle grid (G)',
     aiPreviewTitle: 'AI action preview',
     aiPreviewConfirm: 'Run on selected area?',
     aiPreviewArea: 'Target area',
@@ -1933,6 +1935,8 @@ function App() {
   const [expandContractRadius, setExpandContractRadius] = useState(5)
   const [featherRadius, setFeatherRadius] = useState(5)
   const [selectMode, setSelectMode] = useState<'ai' | 'rect' | 'ellipse' | 'lasso'>('ai')
+  const [showGrid, setShowGrid] = useState(false)
+  const [gridSpacing, setGridSpacing] = useState(100)
   const marqueeStartRef = useRef<{ x: number; y: number } | null>(null)
   const [marqueeRect, setMarqueeRect] = useState<CropRect | null>(null)
   const [lassoPoints, setLassoPoints] = useState<number[]>([])
@@ -3451,6 +3455,11 @@ function App() {
       if (meta && key === 'd' && selectedTextIds.length > 0) {
         e.preventDefault()
         duplicateSelectedTextLayers()
+        return
+      }
+      if (key === 'g') {
+        e.preventDefault()
+        setShowGrid((p) => !p)
         return
       }
       if ((key === '=' || key === '+') && tool !== 'crop') {
@@ -7063,6 +7072,16 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 <button className="btn ghost" onClick={() => setZoom(0.5)}>50%</button>
                 <button className="btn ghost" onClick={() => setZoom(1)}>100%</button>
                 <button className="btn ghost" onClick={() => setZoom(2)}>200%</button>
+                <button className={`btn ghost ${showGrid ? 'active' : ''}`} onClick={() => setShowGrid((p) => !p)} title={ui.toggleGrid}>⊞</button>
+                <input
+                  type="number"
+                  min={10}
+                  max={1000}
+                  value={gridSpacing}
+                  onChange={(e) => setGridSpacing(Math.max(10, Number(e.target.value)))}
+                  style={{ width: 56, display: showGrid ? undefined : 'none' }}
+                  title={ui.toggleGrid}
+                />
               </div>
             </div>
           ) : null}
@@ -7215,6 +7234,23 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   ) : null}
                 </Group>
               </Layer>
+
+              {showGrid && (
+                <Layer listening={false}>
+                  <Group x={fit.ox} y={fit.oy} scaleX={fit.scale} scaleY={fit.scale}>
+                    {Array.from({ length: Math.floor(active.width / gridSpacing) + 1 }, (_, i) => (
+                      <Line key={`gv${i}`}
+                        points={[i * gridSpacing, 0, i * gridSpacing, active.height]}
+                        stroke="rgba(128,128,255,0.3)" strokeWidth={1 / fit.scale} listening={false} />
+                    ))}
+                    {Array.from({ length: Math.floor(active.height / gridSpacing) + 1 }, (_, i) => (
+                      <Line key={`gh${i}`}
+                        points={[0, i * gridSpacing, active.width, i * gridSpacing]}
+                        stroke="rgba(128,128,255,0.3)" strokeWidth={1 / fit.scale} listening={false} />
+                    ))}
+                  </Group>
+                </Layer>
+              )}
 
               <Layer>
                 <Group x={fit.ox} y={fit.oy} scaleX={fit.scale} scaleY={fit.scale}>
