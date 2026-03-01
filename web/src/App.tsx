@@ -1845,7 +1845,7 @@ const UI = {
 function App() {
   const [locale, setLocale] = useState<Locale>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-locale')
+      const saved = window.localStorage.getItem('vora-locale')
       if (saved && SUPPORTED_LOCALES.includes(saved as Locale)) return saved as Locale
     } catch {
       // ignore
@@ -1907,7 +1907,7 @@ function App() {
   const [canvasOffset, setCanvasOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
   const [brushSize, setBrushSize] = useState<number>(() => {
     try {
-      const saved = Number(window.localStorage.getItem('lamivi-brush-size'))
+      const saved = Number(window.localStorage.getItem('vora-brush-size'))
       if (Number.isFinite(saved)) return clamp(Math.round(saved), BRUSH_MIN, BRUSH_MAX)
     } catch {
       // ignore
@@ -1980,7 +1980,7 @@ function App() {
   const [highlightExportFormat, setHighlightExportFormat] = useState(false)
   const [pendingExportFormat, setPendingExportFormat] = useState<ExportKind>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-export-format')
+      const saved = window.localStorage.getItem('vora-export-format')
       return saved === 'png' || saved === 'jpg' || saved === 'webp' || saved === 'pdf' || saved === 'pptx' ? saved : 'png'
     } catch {
       return 'png'
@@ -1988,7 +1988,7 @@ function App() {
   })
   const [pendingExportRatio, setPendingExportRatio] = useState(() => {
     try {
-      const saved = Number(window.localStorage.getItem('lamivi-export-ratio'))
+      const saved = Number(window.localStorage.getItem('vora-export-ratio'))
       return Number.isFinite(saved) ? normalizeExportRatio(saved) : 2
     } catch {
       return 2
@@ -1996,7 +1996,7 @@ function App() {
   })
   const [pendingExportScope, setPendingExportScope] = useState<ExportScope>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-export-scope')
+      const saved = window.localStorage.getItem('vora-export-scope')
       return saved === 'current' || saved === 'selected' || saved === 'all' ? saved : 'current'
     } catch {
       return 'current'
@@ -2004,7 +2004,7 @@ function App() {
   })
   const [pendingExportQuality, setPendingExportQuality] = useState<number>(() => {
     try {
-      const saved = Number(window.localStorage.getItem('lamivi-export-quality'))
+      const saved = Number(window.localStorage.getItem('vora-export-quality'))
       return Number.isFinite(saved) ? clamp(Math.round(saved), 50, 100) : 92
     } catch {
     return DEFAULT_EXPORT_QUALITY
@@ -2020,7 +2020,7 @@ function App() {
   const [lastDirtyAt, setLastDirtyAt] = useState<number | null>(null)
   const [showGuide, setShowGuide] = useState<boolean>(() => {
     try {
-      return window.localStorage.getItem('lamivi-show-guide') !== '0'
+      return window.localStorage.getItem('vora-show-guide') !== '0'
     } catch {
       return true
     }
@@ -2029,14 +2029,14 @@ function App() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general')
   const [showMobileQuickActions, setShowMobileQuickActions] = useState<boolean>(() => {
     try {
-      return window.localStorage.getItem('lamivi-mobile-quick-actions') !== '0'
+      return window.localStorage.getItem('vora-mobile-quick-actions') !== '0'
     } catch {
       return true
     }
   })
   const [mobileQuickOrder, setMobileQuickOrder] = useState<MobileQuickAction[]>(() => {
     try {
-      const raw = window.localStorage.getItem('lamivi-mobile-quick-order')
+      const raw = window.localStorage.getItem('vora-mobile-quick-order')
       const parsed = raw ? JSON.parse(raw) : null
       if (Array.isArray(parsed) && parsed.length === 4) {
         const filtered = parsed.filter((v): v is MobileQuickAction => v === 'export' || v === 'activity' || v === 'shortcuts' || v === 'settings')
@@ -2051,14 +2051,14 @@ function App() {
   const [mobileQuickDrag, setMobileQuickDrag] = useState<MobileQuickAction | null>(null)
   const [cropHideDocksOnCrop, setCropHideDocksOnCrop] = useState<boolean>(() => {
     try {
-      return window.localStorage.getItem('lamivi-crop-hide-docks') !== '0'
+      return window.localStorage.getItem('vora-crop-hide-docks') !== '0'
     } catch {
       return true
     }
   })
   const [showActivityLog, setShowActivityLog] = useState<boolean>(() => {
     try {
-      return window.localStorage.getItem('lamivi-activity-open') === '1'
+      return window.localStorage.getItem('vora-activity-open') === '1'
     } catch {
       return false
     }
@@ -2070,7 +2070,7 @@ function App() {
   const [activityPreviewCompare, setActivityPreviewCompare] = useState(50)
   const [activityFilter, setActivityFilter] = useState<ActivityFilter>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-activity-filter')
+      const saved = window.localStorage.getItem('vora-activity-filter')
       if (saved === 'all' || saved === 'error' || saved === 'success' || saved === 'working') return saved
     } catch {
       // ignore
@@ -2079,21 +2079,21 @@ function App() {
   })
   const [activitySort, setActivitySort] = useState<'latest' | 'oldest'>(() => {
     try {
-      return window.localStorage.getItem('lamivi-activity-sort') === 'oldest' ? 'oldest' : 'latest'
+      return window.localStorage.getItem('vora-activity-sort') === 'oldest' ? 'oldest' : 'latest'
     } catch {
       return 'latest'
     }
   })
   const [activityDownloadMode, setActivityDownloadMode] = useState<'filtered' | 'all'>(() => {
     try {
-      return window.localStorage.getItem('lamivi-activity-download-mode') === 'all' ? 'all' : 'filtered'
+      return window.localStorage.getItem('vora-activity-download-mode') === 'all' ? 'all' : 'filtered'
     } catch {
       return 'filtered'
     }
   })
   const [exportDefaultPreset, setExportDefaultPreset] = useState<'web' | 'print' | 'slides' | 'custom'>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-export-default-preset')
+      const saved = window.localStorage.getItem('vora-export-default-preset')
       return saved === 'web' || saved === 'print' || saved === 'slides' || saved === 'custom' ? saved : 'custom'
     } catch {
       return 'custom'
@@ -2101,7 +2101,7 @@ function App() {
   })
   const [exportDefaultFormat, setExportDefaultFormat] = useState<ExportKind>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-export-default-format')
+      const saved = window.localStorage.getItem('vora-export-default-format')
       return saved === 'png' || saved === 'jpg' || saved === 'webp' || saved === 'pdf' || saved === 'pptx' ? saved : 'png'
     } catch {
       return 'png'
@@ -2109,7 +2109,7 @@ function App() {
   })
   const [exportDefaultScope, setExportDefaultScope] = useState<ExportScope>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-export-default-scope')
+      const saved = window.localStorage.getItem('vora-export-default-scope')
       return saved === 'current' || saved === 'selected' || saved === 'all' ? saved : 'current'
     } catch {
       return 'current'
@@ -2117,7 +2117,7 @@ function App() {
   })
   const [activityLogLimit, setActivityLogLimit] = useState<number>(() => {
     try {
-      const saved = Number(window.localStorage.getItem('lamivi-activity-limit'))
+      const saved = Number(window.localStorage.getItem('vora-activity-limit'))
       if (saved === 5 || saved === 10 || saved === 20) return saved
     } catch {
       // ignore
@@ -2127,17 +2127,15 @@ function App() {
   const [activityNow, setActivityNow] = useState<number>(() => Date.now())
   const [preferredDevice, setPreferredDevice] = useState<'cpu' | 'cuda'>(() => {
     try {
-      const legacy = window.localStorage.getItem('lamivi-preferred-device')
-      const saved = window.localStorage.getItem('lamivi-preferred-device-restore')
-      const value = saved ?? legacy
-      return value === 'cuda' ? 'cuda' : 'cpu'
+      const saved = window.localStorage.getItem('vora-preferred-device-restore')
+      return saved === 'cuda' ? 'cuda' : 'cpu'
     } catch {
       return 'cpu'
     }
   })
   const [autoSaveSeconds, setAutoSaveSeconds] = useState<number>(() => {
     try {
-      const saved = Number(window.localStorage.getItem('lamivi-autosave-sec'))
+      const saved = Number(window.localStorage.getItem('vora-autosave-sec'))
       if (Number.isFinite(saved)) return clamp(Math.round(saved), 0, 300)
     } catch {
       // ignore
@@ -2146,21 +2144,21 @@ function App() {
   })
   const [showShortcutTips, setShowShortcutTips] = useState<boolean>(() => {
     try {
-      return window.localStorage.getItem('lamivi-shortcut-tips') !== '0'
+      return window.localStorage.getItem('vora-shortcut-tips') !== '0'
     } catch {
       return true
     }
   })
   const [textClickEditMode, setTextClickEditMode] = useState<TextClickEditMode>(() => {
     try {
-      return window.localStorage.getItem('lamivi-text-click-edit-mode') === 'double' ? 'double' : 'single'
+      return window.localStorage.getItem('vora-text-click-edit-mode') === 'double' ? 'double' : 'single'
     } catch {
       return 'single'
     }
   })
   const [zoomWheelSensitivity, setZoomWheelSensitivity] = useState<number>(() => {
     try {
-      const saved = Number(window.localStorage.getItem('lamivi-zoom-wheel-sensitivity'))
+      const saved = Number(window.localStorage.getItem('vora-zoom-wheel-sensitivity'))
       if (Number.isFinite(saved)) return clamp(saved, 0.4, 2)
     } catch {
       // ignore
@@ -2169,7 +2167,7 @@ function App() {
   })
   const [textSnapStrength, setTextSnapStrength] = useState<TextSnapStrength>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-text-snap-strength')
+      const saved = window.localStorage.getItem('vora-text-snap-strength')
       if (saved === 'off' || saved === 'soft' || saved === 'normal' || saved === 'strong') return saved
     } catch {
       // ignore
@@ -2184,14 +2182,14 @@ function App() {
   const [macroRunningTool, setMacroRunningTool] = useState<'restore' | 'eraser' | null>(null)
   const [tooltipDensity, setTooltipDensity] = useState<TooltipDensity>(() => {
     try {
-      return window.localStorage.getItem('lamivi-tooltip-density') === 'simple' ? 'simple' : 'detailed'
+      return window.localStorage.getItem('vora-tooltip-density') === 'simple' ? 'simple' : 'detailed'
     } catch {
       return 'detailed'
     }
   })
   const [animationStrength, setAnimationStrength] = useState<AnimationStrength>(() => {
     try {
-      const saved = window.localStorage.getItem('lamivi-animation-strength')
+      const saved = window.localStorage.getItem('vora-animation-strength')
       if (saved === 'low' || saved === 'high' || saved === 'default') return saved
     } catch {
       // ignore
@@ -2200,7 +2198,7 @@ function App() {
   })
   const [uiDensity, setUiDensity] = useState<UiDensity>(() => {
     try {
-      return window.localStorage.getItem('lamivi-ui-density') === 'compact' ? 'compact' : 'default'
+      return window.localStorage.getItem('vora-ui-density') === 'compact' ? 'compact' : 'default'
     } catch {
       return 'default'
     }
@@ -2486,7 +2484,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-locale', locale)
+      window.localStorage.setItem('vora-locale', locale)
     } catch {
       // ignore
     }
@@ -2494,7 +2492,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-mobile-quick-actions', showMobileQuickActions ? '1' : '0')
+      window.localStorage.setItem('vora-mobile-quick-actions', showMobileQuickActions ? '1' : '0')
     } catch {
       // ignore
     }
@@ -2502,7 +2500,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-crop-hide-docks', cropHideDocksOnCrop ? '1' : '0')
+      window.localStorage.setItem('vora-crop-hide-docks', cropHideDocksOnCrop ? '1' : '0')
     } catch {
       // ignore
     }
@@ -2510,7 +2508,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-mobile-quick-order', JSON.stringify(mobileQuickOrder))
+      window.localStorage.setItem('vora-mobile-quick-order', JSON.stringify(mobileQuickOrder))
     } catch {
       // ignore
     }
@@ -2518,7 +2516,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-export-default-preset', exportDefaultPreset)
+      window.localStorage.setItem('vora-export-default-preset', exportDefaultPreset)
     } catch {
       // ignore
     }
@@ -2526,7 +2524,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-export-default-format', exportDefaultFormat)
+      window.localStorage.setItem('vora-export-default-format', exportDefaultFormat)
     } catch {
       // ignore
     }
@@ -2534,7 +2532,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-export-default-scope', exportDefaultScope)
+      window.localStorage.setItem('vora-export-default-scope', exportDefaultScope)
     } catch {
       // ignore
     }
@@ -2579,7 +2577,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-show-guide', showGuide ? '1' : '0')
+      window.localStorage.setItem('vora-show-guide', showGuide ? '1' : '0')
     } catch {
       // ignore
     }
@@ -2587,7 +2585,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-brush-size', String(clamp(Math.round(brushSize), BRUSH_MIN, BRUSH_MAX)))
+      window.localStorage.setItem('vora-brush-size', String(clamp(Math.round(brushSize), BRUSH_MIN, BRUSH_MAX)))
     } catch {
       // ignore
     }
@@ -2595,7 +2593,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-autosave-sec', String(clamp(Math.round(autoSaveSeconds), 0, 300)))
+      window.localStorage.setItem('vora-autosave-sec', String(clamp(Math.round(autoSaveSeconds), 0, 300)))
     } catch {
       // ignore
     }
@@ -2603,7 +2601,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-shortcut-tips', showShortcutTips ? '1' : '0')
+      window.localStorage.setItem('vora-shortcut-tips', showShortcutTips ? '1' : '0')
     } catch {
       // ignore
     }
@@ -2611,7 +2609,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-text-click-edit-mode', textClickEditMode)
+      window.localStorage.setItem('vora-text-click-edit-mode', textClickEditMode)
     } catch {
       // ignore
     }
@@ -2619,7 +2617,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-zoom-wheel-sensitivity', String(clamp(zoomWheelSensitivity, 0.4, 2)))
+      window.localStorage.setItem('vora-zoom-wheel-sensitivity', String(clamp(zoomWheelSensitivity, 0.4, 2)))
     } catch {
       // ignore
     }
@@ -2627,7 +2625,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-text-snap-strength', textSnapStrength)
+      window.localStorage.setItem('vora-text-snap-strength', textSnapStrength)
     } catch {
       // ignore
     }
@@ -2635,10 +2633,10 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-export-format', pendingExportFormat)
-      window.localStorage.setItem('lamivi-export-ratio', String(pendingExportRatio))
-      window.localStorage.setItem('lamivi-export-scope', pendingExportScope)
-      window.localStorage.setItem('lamivi-export-quality', String(clamp(Math.round(pendingExportQuality), 50, 100)))
+      window.localStorage.setItem('vora-export-format', pendingExportFormat)
+      window.localStorage.setItem('vora-export-ratio', String(pendingExportRatio))
+      window.localStorage.setItem('vora-export-scope', pendingExportScope)
+      window.localStorage.setItem('vora-export-quality', String(clamp(Math.round(pendingExportQuality), 50, 100)))
     } catch {
       // ignore
     }
@@ -2715,7 +2713,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-tooltip-density', tooltipDensity)
+      window.localStorage.setItem('vora-tooltip-density', tooltipDensity)
     } catch {
       // ignore
     }
@@ -2723,7 +2721,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-animation-strength', animationStrength)
+      window.localStorage.setItem('vora-animation-strength', animationStrength)
     } catch {
       // ignore
     }
@@ -2731,7 +2729,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-ui-density', uiDensity)
+      window.localStorage.setItem('vora-ui-density', uiDensity)
     } catch {
       // ignore
     }
@@ -2739,7 +2737,7 @@ function App() {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem('lamivi-autosave')
+      const raw = window.localStorage.getItem('vora-autosave')
       if (!raw) return
       const parsed = JSON.parse(raw) as { assets?: PageAsset[]; activeId?: string | null; ts?: number }
       if (!Array.isArray(parsed.assets) || parsed.assets.length === 0) return
@@ -2759,7 +2757,7 @@ function App() {
     const timer = window.setInterval(() => {
       try {
         window.localStorage.setItem(
-          'lamivi-autosave',
+          'vora-autosave',
           JSON.stringify({
             ts: Date.now(),
             activeId,
@@ -2776,7 +2774,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-preferred-device-restore', preferredDevice)
+      window.localStorage.setItem('vora-preferred-device-restore', preferredDevice)
     } catch {
       // ignore
     }
@@ -2854,7 +2852,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-activity-open', showActivityLog ? '1' : '0')
+      window.localStorage.setItem('vora-activity-open', showActivityLog ? '1' : '0')
     } catch {
       // ignore
     }
@@ -2862,7 +2860,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-activity-filter', activityFilter)
+      window.localStorage.setItem('vora-activity-filter', activityFilter)
     } catch {
       // ignore
     }
@@ -2870,7 +2868,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-activity-sort', activitySort)
+      window.localStorage.setItem('vora-activity-sort', activitySort)
     } catch {
       // ignore
     }
@@ -2878,7 +2876,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-activity-download-mode', activityDownloadMode)
+      window.localStorage.setItem('vora-activity-download-mode', activityDownloadMode)
     } catch {
       // ignore
     }
@@ -2886,7 +2884,7 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem('lamivi-activity-limit', String(activityLogLimit))
+      window.localStorage.setItem('vora-activity-limit', String(activityLogLimit))
     } catch {
       // ignore
     }
@@ -5551,7 +5549,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
   function discardPendingAutoRestore() {
     setPendingAutoRestore(null)
     try {
-      window.localStorage.removeItem('lamivi-autosave')
+      window.localStorage.removeItem('vora-autosave')
     } catch {
       // ignore
     }

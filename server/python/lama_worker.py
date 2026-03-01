@@ -29,7 +29,7 @@ def _cuda_available() -> bool:
 
 
 def _pick_device() -> tuple[str, str, str | None]:
-    requested = os.environ.get("VORA_DEVICE", os.environ.get("LAMIVI_DEVICE", "auto")).strip().lower()
+    requested = os.environ.get("VORA_DEVICE", "auto").strip().lower()
     requested = requested if requested in ("auto", "cpu", "cuda") else "auto"
 
     if requested == "cpu":
@@ -82,7 +82,7 @@ def _load_big_lama(device: str) -> tuple[Any, str | None]:
 
 
 def _load_sam_predictor(device: str) -> tuple[Any, str, str | None]:
-    model_name = os.environ.get("VORA_SAM_MODEL", os.environ.get("LAMIVI_SAM_MODEL", "facebook/sam2.1-hiera-large")).strip()
+    model_name = os.environ.get("VORA_SAM_MODEL", "facebook/sam2.1-hiera-large").strip()
     if not model_name:
         model_name = "facebook/sam2.1-hiera-large"
 
