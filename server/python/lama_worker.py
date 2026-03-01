@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import traceback
+import time
 from typing import Any
 
 import numpy as np
@@ -293,11 +294,18 @@ for line in sys.stdin:
     line = line.strip()
     if not line:
         continue
+    req_id: str | None = None
     try:
         req = json.loads(line)
         req_id = req.get("id")
         op = req.get("op")
         image_b64 = req.get("image_b64")
+        print(
+            f"[lama-worker] request start id={req_id} op={op}",
+            file=sys.stderr,
+            flush=True,
+        )
+        started_at = time.perf_counter()
 
         if not isinstance(req_id, str) or not isinstance(image_b64, str):
             _write({"id": req_id, "ok": False, "error": "Invalid request payload"})
@@ -309,8 +317,18 @@ for line in sys.stdin:
             if not isinstance(point_x, (int, float)) or not isinstance(point_y, (int, float)):
                 _write({"id": req_id, "ok": False, "error": "Invalid segment point payload"})
                 continue
+            print(
+                f"[lama-worker] segment request id={req_id} point=({int(round(point_x))}, {int(round(point_y))}) image_size={len(image_b64)}",
+                file=sys.stderr,
+                flush=True,
+            )
             result = _run_segment_point(image_b64, int(round(point_x)), int(round(point_y)))
             out_b64 = _encode_png(result)
+            print(
+                f"[lama-worker] segment done id={req_id} elapsed_ms={(time.perf_counter()-started_at)*1000:.1f} output_size={len(out_b64)}",
+                file=sys.stderr,
+                flush=True,
+            )
             _write({"id": req_id, "ok": True, "output_b64": out_b64})
             continue
 
@@ -327,6 +345,11 @@ for line in sys.stdin:
         out_b64 = _encode_png(result)
         _write({"id": req_id, "ok": True, "output_b64": out_b64})
     except Exception as e:  # noqa: BLE001
+        print(
+            f"[lama-worker] request failed id={req_id} err={e}",
+            file=sys.stderr,
+            flush=True,
+        )
         _write(
             {
                 "ok": False,

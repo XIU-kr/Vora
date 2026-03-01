@@ -506,6 +506,12 @@ app.post('/api/inpaint', upload.fields([{ name: 'image', maxCount: 1 }, { name: 
 })
 
 app.post('/api/segment-point', upload.fields([{ name: 'image', maxCount: 1 }]), async (req, res) => {
+  const startedAt = Date.now()
+  const reqId = `seg_${startedAt.toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+  if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
+    console.log(`[segment-point] start id=${reqId} body=${JSON.stringify({ contentLength: req.headers['content-length'] })}`)
+  }
   try {
     const files = req.files as Record<string, Express.Multer.File[]> | undefined
     const imageFile = files?.image?.[0]
@@ -517,11 +523,26 @@ app.post('/api/segment-point', upload.fields([{ name: 'image', maxCount: 1 }]), 
       return
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[segment-point] request id=${reqId} point=(${Math.round(pointXRaw)}, ${Math.round(pointYRaw)}) imageSize=${imageFile.size}`,
+      )
+    }
+
     const out = await runSamSegmentPoint(imageFile.buffer, pointXRaw, pointYRaw)
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.log(`[segment-point] done id=${reqId} durationMs=${Date.now() - startedAt} outputSize=${out.length}`)
+    }
     res.setHeader('content-type', 'image/png')
     res.send(out)
   } catch (e) {
     const message = String(e instanceof Error ? e.message : e)
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.error(`[segment-point] error id=${reqId} durationMs=${Date.now() - startedAt} message=${message}`)
+    }
     if (message.includes('No module named')) {
       res.status(500).json({ error: 'SAM dependencies are missing. Install required packages (sam2 or transformers, hydra-core, iopath, omegaconf, torch, torchvision, numpy, pillow).' })
       return

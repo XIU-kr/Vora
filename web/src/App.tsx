@@ -4590,12 +4590,28 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
   async function runSelectionAtPoint(pointX: number, pointY: number) {
     if (!active) return
+    const requestStart = performance.now()
+    if (import.meta.env.DEV) {
+      console.debug('[Vora] AI select start', {
+        pointX: Math.round(pointX),
+        pointY: Math.round(pointY),
+        activeId: active.id,
+        imageWidth: active.width,
+        imageHeight: active.height,
+      })
+    }
     setBusy(ui.selectionRunning)
     setStatus(ui.selectionRunning)
     runCancelableStart()
     setProgressState({ label: ui.selectionRunning, value: 0, total: 1, indeterminate: true })
     try {
       const imageBlob = await dataUrlToBlob(active.baseDataUrl)
+      if (import.meta.env.DEV) {
+        console.debug('[Vora] AI select image prepared', {
+          mimeType: imageBlob.type,
+          bytes: imageBlob.size,
+        })
+      }
       const maskBlob = await segmentPointViaApi({ image: imageBlob, pointX, pointY })
       const maskImageUrl = await blobToDataUrl(maskBlob)
       const maskImage = await loadHtmlImage(maskImageUrl)
@@ -4612,8 +4628,23 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
       setSelectionMaskDataUrl(normalizedMaskUrl)
       setSelectionMaskBounds(bounds)
       setStatus(ui.selectionDone)
+      if (import.meta.env.DEV) {
+        console.debug('[Vora] AI select done', {
+          elapsedMs: Math.round(performance.now() - requestStart),
+          bounds,
+          maskBytes: maskBlob.size,
+        })
+      }
     } catch (e) {
       const message = String(e instanceof Error ? e.message : e)
+      if (import.meta.env.DEV) {
+        console.error('[Vora] AI select failed', {
+          message,
+          elapsedMs: Math.round(performance.now() - requestStart),
+          pointX: Math.round(pointX),
+          pointY: Math.round(pointY),
+        })
+      }
       if (message.includes('ERR_SEGMENT')) {
         setStatus(localizeErrorMessage(message))
       } else if (message.includes(ERR_SEGMENT_MASK_EMPTY)) {
