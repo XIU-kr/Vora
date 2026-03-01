@@ -2207,8 +2207,7 @@ function App() {
   const stageRef = useRef<Konva.Stage | null>(null)
   const transformerRef = useRef<Konva.Transformer | null>(null)
   const textNodeRefs = useRef<Record<string, Konva.Text>>({})
-  const minimapRef = useRef<HTMLDivElement | null>(null)
-  const minimapDraggingRef = useRef(false)
+
   const { ref: wrapRef, size: wrapSize } = useElementSize<HTMLDivElement>()
   const [baseImg, setBaseImg] = useState<HTMLImageElement | null>(null)
 
@@ -5363,61 +5362,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     if (!active || !pendingMaskAction || pendingMaskAction.assetId !== active.id) return null
     return resolveMaskActionBounds(active, pendingMaskAction.strokes, maskApplyScope)
   }, [active, pendingMaskAction, maskApplyScope, cropRect])
-  const minimap = useMemo(() => {
-    if (!active || fit.scale <= 0) return null
-    const maxW = 188
-    const maxH = 128
-    const ratio = Math.min(maxW / active.width, maxH / active.height)
-    const width = Math.max(72, Math.round(active.width * ratio))
-    const height = Math.max(48, Math.round(active.height * ratio))
 
-    const viewRawX = (-fit.ox) / fit.scale
-    const viewRawY = (-fit.oy) / fit.scale
-    const viewRawW = wrapSize.w / fit.scale
-    const viewRawH = wrapSize.h / fit.scale
-
-    const viewW = clamp(viewRawW * ratio, 10, width)
-    const viewH = clamp(viewRawH * ratio, 10, height)
-    const viewX = clamp(viewRawX * ratio, 0, width - viewW)
-    const viewY = clamp(viewRawY * ratio, 0, height - viewH)
-    return { width, height, ratio, viewX, viewY, viewW, viewH }
-  }, [active, fit.ox, fit.oy, fit.scale, wrapSize.w, wrapSize.h])
-
-  function navigateToMinimapPoint(clientX: number, clientY: number) {
-    if (!active || !minimap) return
-    const rect = minimapRef.current?.getBoundingClientRect()
-    if (!rect) return
-    const localX = clamp(clientX - rect.left, 0, rect.width)
-    const localY = clamp(clientY - rect.top, 0, rect.height)
-    const imageX = localX / minimap.ratio
-    const imageY = localY / minimap.ratio
-    const scale = fit.scale
-    if (!Number.isFinite(scale) || scale <= 0) return
-    const centeredOx = (wrapSize.w - active.width * scale) / 2
-    const centeredOy = (wrapSize.h - active.height * scale) / 2
-    setCanvasOffset({
-      x: wrapSize.w / 2 - centeredOx - imageX * scale,
-      y: wrapSize.h / 2 - centeredOy - imageY * scale,
-    })
-  }
-
-  function onMinimapPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
-    e.preventDefault()
-    minimapDraggingRef.current = true
-    navigateToMinimapPoint(e.clientX, e.clientY)
-
-    const onMove = (event: PointerEvent) => {
-      if (!minimapDraggingRef.current) return
-      navigateToMinimapPoint(event.clientX, event.clientY)
-    }
-    const onUp = () => {
-      minimapDraggingRef.current = false
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-    }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-  }
   const cropAreaPercent = activeCropRect && active
     ? clamp((activeCropRect.width * activeCropRect.height * 100) / Math.max(1, active.width * active.height), 0, 100)
     : null
@@ -6687,27 +6632,6 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 <button className="btn ghost" onClick={() => setZoom(0.5)}>50%</button>
                 <button className="btn ghost" onClick={() => setZoom(1)}>100%</button>
                 <button className="btn ghost" onClick={() => setZoom(2)}>200%</button>
-              </div>
-            </div>
-          ) : null}
-          {active && minimap ? (
-            <div className={`canvasMiniMap ${cropDockClass}`} title={ui.minimap}>
-              <div
-                ref={minimapRef}
-                className="miniMapFrame"
-                style={{ width: minimap.width, height: minimap.height }}
-                onPointerDown={onMinimapPointerDown}
-              >
-                <img className="miniMapImage" src={active.baseDataUrl} alt={ui.minimap} draggable={false} />
-                <div
-                  className="miniMapViewport"
-                  style={{
-                    left: minimap.viewX,
-                    top: minimap.viewY,
-                    width: minimap.viewW,
-                    height: minimap.viewH,
-                  }}
-                />
               </div>
             </div>
           ) : null}

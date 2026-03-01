@@ -247,17 +247,19 @@ def _run_segment_point_sam_vit(image: Image.Image, point_x: int, point_y: int) -
 
     first_masks = masks_list[0]
     masks_np = first_masks.detach().cpu().numpy() if hasattr(first_masks, "detach") else np.asarray(first_masks)
+    # Normalize to (num_masks, H, W): squeeze any leading size-1 batch/point dims
+    while masks_np.ndim > 3 and masks_np.shape[0] == 1:
+        masks_np = masks_np[0]
     if masks_np.ndim < 3 or masks_np.shape[0] == 0:
         raise RuntimeError("SAM vit returned no masks")
 
     scores_tensor = outputs.iou_scores[0]
     scores_np = scores_tensor.detach().cpu().numpy() if hasattr(scores_tensor, "detach") else np.asarray(scores_tensor)
-    best_idx = int(np.argmax(scores_np)) if scores_np.size > 0 else 0
-    if best_idx >= masks_np.shape[0]:
-        best_idx = 0
+    scores_flat = scores_np.ravel()
+    best_idx = int(np.argmax(scores_flat)) if scores_flat.size > 0 else 0
+    best_idx = min(best_idx, masks_np.shape[0] - 1)
     best_mask = masks_np[best_idx]
-    # post_process_masks output shape varies by transformers version:
-    # (num_masks, 1, H, W) or (1, H, W) after indexing — squeeze all leading size-1 dims
+    # Squeeze any remaining leading size-1 dims (e.g., (1, H, W))
     while best_mask.ndim > 2 and best_mask.shape[0] == 1:
         best_mask = best_mask[0]
     if best_mask.ndim != 2:
