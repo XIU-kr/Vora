@@ -110,6 +110,8 @@ class LamaWorkerClient {
   private initPromise: Promise<void> | null = null
   private lastError: string | null = null
   private warning: string | null = null
+  private modelName: string | null = null
+  private samModelName: string | null = null
 
   private decodeBase64ToBuffer(value: string): Buffer {
     return Buffer.from(value, 'base64')
@@ -158,6 +160,8 @@ class LamaWorkerClient {
           this.requestedDevice = this.normalizeDevice(typeof msg.requested_device === 'string' ? msg.requested_device : this.requestedDevice)
           this.cudaAvailable = typeof msg.cuda_available === 'boolean' ? msg.cuda_available : this.cudaAvailable
           this.warning = typeof msg.warning === 'string' ? msg.warning : null
+          this.modelName = typeof msg.model === 'string' ? msg.model : this.modelName
+          this.samModelName = typeof msg.sam_model === 'string' ? msg.sam_model : this.samModelName
           if (this.warning) {
             // eslint-disable-next-line no-console
             console.warn(`[lama-worker warning] ${this.warning}`)
@@ -289,8 +293,40 @@ class LamaWorkerClient {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
     const payload = {
       id,
+      op: 'inpaint',
       image_b64: this.encodeBufferToBase64(image),
       mask_b64: this.encodeBufferToBase64(mask),
+    }
+
+    return await new Promise<Buffer>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id)
+        reject(new Error(`LaMa worker timeout after ${WORKER_TIMEOUT_MS}ms`))
+      }, WORKER_TIMEOUT_MS)
+
+      this.pending.set(id, { resolve, reject, timer })
+
+      try {
+        this.proc?.stdin.write(`${JSON.stringify(payload)}\n`)
+      } catch (e) {
+        clearTimeout(timer)
+        this.pending.delete(id)
+        reject(e)
+      }
+    })
+  }
+
+  async segmentPoint(image: Buffer, pointX: number, pointY: number): Promise<Buffer> {
+    await this.ensureReady()
+    if (!this.proc) throw new Error('LaMa worker not running')
+
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const payload = {
+      id,
+      op: 'segment_point',
+      image_b64: this.encodeBufferToBase64(image),
+      point_x: Math.round(pointX),
+      point_y: Math.round(pointY),
     }
 
     return await new Promise<Buffer>((resolve, reject) => {
@@ -331,6 +367,14 @@ class LamaWorkerClient {
     return this.warning
   }
 
+  getModelName(): string | null {
+    return this.modelName
+  }
+
+  getSamModelName(): string | null {
+    return this.samModelName
+  }
+
   isReady(): boolean {
     return this.ready
   }
@@ -351,6 +395,8 @@ function healthPayload() {
   return {
     status: 'ok',
     worker: {
+      model: lamaWorker.getModelName() ?? 'big-lama',
+      samModel: lamaWorker.getSamModelName() ?? 'sam2.1-hiera-large',
       ready: lamaWorker.isReady(),
       device: lamaWorker.getDevice() ?? 'initializing',
       requestedDevice: lamaWorker.getRequestedDevice(),
@@ -401,6 +447,10 @@ async function runLamaInpaint(image: Buffer, mask: Buffer): Promise<Buffer> {
   return await lamaWorker.inpaint(image, mask)
 }
 
+async function runSamSegmentPoint(image: Buffer, pointX: number, pointY: number): Promise<Buffer> {
+  return await lamaWorker.segmentPoint(image, pointX, pointY)
+}
+
 app.post('/api/inpaint', upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mask', maxCount: 1 }]), async (req, res) => {
   try {
     const files = req.files as Record<string, Express.Multer.File[]> | undefined
@@ -423,6 +473,31 @@ app.post('/api/inpaint', upload.fields([{ name: 'image', maxCount: 1 }, { name: 
     }
     if (message.includes('No module named')) {
       res.status(500).json({ error: 'LaMa dependencies are missing. Install required packages (simple-lama-inpainting, pillow, numpy).' })
+      return
+    }
+    res.status(500).json({ error: message })
+  }
+})
+
+app.post('/api/segment-point', upload.fields([{ name: 'image', maxCount: 1 }]), async (req, res) => {
+  try {
+    const files = req.files as Record<string, Express.Multer.File[]> | undefined
+    const imageFile = files?.image?.[0]
+    const pointXRaw = Number(req.body?.pointX)
+    const pointYRaw = Number(req.body?.pointY)
+
+    if (!imageFile || !Number.isFinite(pointXRaw) || !Number.isFinite(pointYRaw)) {
+      res.status(400).json({ error: 'Missing image or pointX/pointY' })
+      return
+    }
+
+    const out = await runSamSegmentPoint(imageFile.buffer, pointXRaw, pointYRaw)
+    res.setHeader('content-type', 'image/png')
+    res.send(out)
+  } catch (e) {
+    const message = String(e instanceof Error ? e.message : e)
+    if (message.includes('No module named')) {
+      res.status(500).json({ error: 'SAM2 dependencies are missing. Install required packages (sam2, hydra-core, iopath, omegaconf, torch, torchvision, numpy, pillow).' })
       return
     }
     res.status(500).json({ error: message })
