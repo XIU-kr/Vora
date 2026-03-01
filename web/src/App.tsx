@@ -1,6 +1,21 @@
 import { type DragEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from 'react'
 import Konva from 'konva'
 import { Circle, Ellipse, Image as KonvaImage, Layer, Line, Stage, Text, Group, Rect, Transformer } from 'react-konva'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faArrowsUpDownLeftRight,
+  faCropSimple,
+  faEraser,
+  faFont,
+  faMagnifyingGlass,
+  faMagnifyingGlassMinus,
+  faMagnifyingGlassPlus,
+  faObjectGroup,
+  faPlus,
+  faRotateLeft,
+  faRotateRight,
+  faWandMagicSparkles,
+} from '@fortawesome/free-solid-svg-icons'
 import { jsPDF } from 'jspdf'
 import PptxGenJS from 'pptxgenjs'
 
@@ -6972,7 +6987,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 data-key="B"
                 onClick={() => setTool('restore')}
               >
-                ✨
+                <FontAwesomeIcon icon={faWandMagicSparkles} />
               </button>
               <button
                 className={`iconDockBtn ${tool === 'select' ? 'active' : ''}`}
@@ -6982,7 +6997,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 data-key="S"
                 onClick={() => setTool('select')}
               >
-                ◉
+                <FontAwesomeIcon icon={faObjectGroup} />
               </button>
               <button
                 className={`iconDockBtn ${tool === 'move' ? 'active' : ''}`}
@@ -6992,7 +7007,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 data-key="M"
                 onClick={() => setTool('move')}
               >
-                ✥
+                <FontAwesomeIcon icon={faArrowsUpDownLeftRight} />
               </button>
               <button
                 className={`iconDockBtn ${tool === 'eraser' ? 'active' : ''}`}
@@ -7002,7 +7017,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 data-key="E"
                 onClick={() => setTool('eraser')}
               >
-                ⌫
+                <FontAwesomeIcon icon={faEraser} />
               </button>
               <button
                 className={`iconDockBtn ${tool === 'text' ? 'active' : ''}`}
@@ -7012,7 +7027,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 data-key="T"
                 onClick={() => setTool('text')}
               >
-                T
+                <FontAwesomeIcon icon={faFont} />
               </button>
               {tool === 'text' ? (
                 <button
@@ -7022,7 +7037,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   data-tip={ui.addTextLayer}
                   onClick={addTextFromMenu}
                 >
-                  ＋
+                  <FontAwesomeIcon icon={faPlus} />
                 </button>
               ) : null}
               <button
@@ -7033,7 +7048,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 data-key="C"
                 onClick={() => setTool('crop')}
               >
-                ▣
+                <FontAwesomeIcon icon={faCropSimple} />
               </button>
               <button
                 className="iconDockBtn"
@@ -7045,18 +7060,18 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   setCanvasOffset({ x: 0, y: 0 })
                 }}
               >
-                ◎
+                <FontAwesomeIcon icon={faMagnifyingGlass} />
               </button>
             </div>
           ) : null}
           {active ? <div className="modeBadge">{tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : ui.modeEraser}</div> : null}
           {active ? (
             <div className={`canvasZoomDock ${cropDockClass}`} title={ui.zoomHintCtrlWheel}>
-              <button className="iconDockBtn" onClick={() => zoomBy(-0.1)} title={ui.zoomOut} aria-label={ui.zoomOut}>－</button>
+              <button className="iconDockBtn" onClick={() => zoomBy(-0.1)} title={ui.zoomOut} aria-label={ui.zoomOut}><FontAwesomeIcon icon={faMagnifyingGlassMinus} /></button>
               <button className="iconDockBtn zoomPct" onClick={() => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) }} title={ui.zoomReset} aria-label={ui.zoomReset}>
                 {Math.round(canvasZoom * 100)}%
               </button>
-              <button className="iconDockBtn" onClick={() => zoomBy(0.1)} title={ui.zoomIn} aria-label={ui.zoomIn}>＋</button>
+              <button className="iconDockBtn" onClick={() => zoomBy(0.1)} title={ui.zoomIn} aria-label={ui.zoomIn}><FontAwesomeIcon icon={faMagnifyingGlassPlus} /></button>
               <input
                 className="zoomSlider"
                 type="range"
@@ -7096,7 +7111,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 onClick={undoRestore}
                 disabled={!canUndo}
               >
-                ↶
+                <FontAwesomeIcon icon={faRotateLeft} />
               </button>
               <button
                 className="iconDockBtn"
@@ -7107,7 +7122,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 onClick={redoRestore}
                 disabled={!canRedo}
               >
-                ↷
+                <FontAwesomeIcon icon={faRotateRight} />
               </button>
             </div>
           ) : null}
