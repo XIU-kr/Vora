@@ -1124,6 +1124,9 @@ const UI = {
     selectionContract: '축소',
     selectionFeather: '페더',
     autoBgRemove: '배경 자동 제거',
+    imageTransform: '이미지 변환',
+    flipH: '좌우 반전',
+    flipV: '상하 반전',
     aiPreviewTitle: 'AI 실행 미리보기',
     aiPreviewConfirm: '선택 영역에 실행할까요?',
     aiPreviewArea: '대상 영역',
@@ -1560,6 +1563,9 @@ const UI = {
     selectionContract: 'Contract',
     selectionFeather: 'Feather',
     autoBgRemove: 'Auto Remove BG',
+    imageTransform: 'Image Transform',
+    flipH: 'Flip H',
+    flipV: 'Flip V',
     aiPreviewTitle: 'AI action preview',
     aiPreviewConfirm: 'Run on selected area?',
     aiPreviewArea: 'Target area',
@@ -4839,6 +4845,56 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     }
   }
 
+  function rotateTextItem(t: TextItem, deg: 90 | 180 | 270, w: number, h: number): TextItem {
+    if (deg === 90) return { ...t, x: h - t.y, y: t.x, rotation: (t.rotation + 90) % 360 }
+    if (deg === 180) return { ...t, x: w - t.x, y: h - t.y, rotation: (t.rotation + 180) % 360 }
+    return { ...t, x: t.y, y: w - t.x, rotation: (t.rotation + 270) % 360 }
+  }
+
+  function flipTextItem(t: TextItem, axis: 'h' | 'v', w: number, h: number): TextItem {
+    if (axis === 'h') return { ...t, x: w - t.x }
+    return { ...t, y: h - t.y }
+  }
+
+  async function rotateImage(degrees: 90 | 180 | 270) {
+    if (!active) return
+    const isOdd = degrees === 90 || degrees === 270
+    const newW = isOdd ? active.height : active.width
+    const newH = isOdd ? active.width : active.height
+    const canvas = document.createElement('canvas')
+    canvas.width = newW; canvas.height = newH
+    const ctx = canvas.getContext('2d')!
+    const img = await loadHtmlImage(active.baseDataUrl)
+    ctx.translate(newW / 2, newH / 2)
+    ctx.rotate((degrees * Math.PI) / 180)
+    ctx.drawImage(img, -active.width / 2, -active.height / 2)
+    const resultUrl = canvas.toDataURL('image/png')
+    const w = active.width; const h = active.height
+    updateActiveWithHistory(`Rotate ${degrees}°`, (a) => ({
+      ...a, width: newW, height: newH, baseDataUrl: resultUrl,
+      texts: a.texts.map((t) => rotateTextItem(t, degrees, w, h)),
+    }))
+    setSelectionMaskDataUrl(null); setSelectionMaskBounds(null)
+  }
+
+  async function flipImage(axis: 'h' | 'v') {
+    if (!active) return
+    const canvas = document.createElement('canvas')
+    canvas.width = active.width; canvas.height = active.height
+    const ctx = canvas.getContext('2d')!
+    const img = await loadHtmlImage(active.baseDataUrl)
+    if (axis === 'h') { ctx.translate(active.width, 0); ctx.scale(-1, 1) }
+    else { ctx.translate(0, active.height); ctx.scale(1, -1) }
+    ctx.drawImage(img, 0, 0)
+    const resultUrl = canvas.toDataURL('image/png')
+    const w = active.width; const h = active.height
+    updateActiveWithHistory(axis === 'h' ? 'Flip horizontal' : 'Flip vertical', (a) => ({
+      ...a, baseDataUrl: resultUrl,
+      texts: a.texts.map((t) => flipTextItem(t, axis, w, h)),
+    }))
+    setSelectionMaskDataUrl(null); setSelectionMaskBounds(null)
+  }
+
   async function autoRemoveBackground() {
     if (!active) return
     setBusy(ui.selectionRunning); setStatus(ui.selectionRunning)
@@ -7485,6 +7541,21 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     </button>
                   </div>
                   <div className="hint">{ui.macroHint} {ui.macroSelectHint}</div>
+                </>
+              ) : null}
+
+              {tool === 'move' && active ? (
+                <>
+                  <div className="label">{ui.imageTransform}</div>
+                  <div className="buttonRow">
+                    <button className="btn" disabled={!!busy} onClick={() => void rotateImage(90)}>↻ 90°</button>
+                    <button className="btn" disabled={!!busy} onClick={() => void rotateImage(270)}>↺ 90°</button>
+                    <button className="btn" disabled={!!busy} onClick={() => void rotateImage(180)}>180°</button>
+                  </div>
+                  <div className="buttonRow">
+                    <button className="btn" disabled={!!busy} onClick={() => void flipImage('h')}>{ui.flipH}</button>
+                    <button className="btn" disabled={!!busy} onClick={() => void flipImage('v')}>{ui.flipV}</button>
+                  </div>
                 </>
               ) : null}
 
