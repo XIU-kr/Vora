@@ -5,6 +5,8 @@ services:
       - "18743:18743"
     environment:
       - VORA_DEVICE=auto
+      - VORA_SAM_MODEL=vit_l
+      - VORA_LAMA_FP16=1
       - VORA_PYTHON=/opt/venv-lama/bin/python
       - VORA_WORKER_TIMEOUT_MS=600000
       - VORA_BOOT_TIMEOUT_MS=120000

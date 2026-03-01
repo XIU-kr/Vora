@@ -112,6 +112,8 @@ class LamaWorkerClient {
   private warning: string | null = null
   private modelName: string | null = null
   private samModelName: string | null = null
+  private samBackendName: string | null = null
+  private lamaFp16: boolean | null = null
 
   private decodeBase64ToBuffer(value: string): Buffer {
     return Buffer.from(value, 'base64')
@@ -162,6 +164,8 @@ class LamaWorkerClient {
           this.warning = typeof msg.warning === 'string' ? msg.warning : null
           this.modelName = typeof msg.model === 'string' ? msg.model : this.modelName
           this.samModelName = typeof msg.sam_model === 'string' ? msg.sam_model : this.samModelName
+          this.samBackendName = typeof msg.sam_backend === 'string' ? msg.sam_backend : this.samBackendName
+          this.lamaFp16 = typeof msg.lama_fp16 === 'boolean' ? msg.lama_fp16 : this.lamaFp16
           if (this.warning) {
             // eslint-disable-next-line no-console
             console.warn(`[lama-worker warning] ${this.warning}`)
@@ -375,6 +379,14 @@ class LamaWorkerClient {
     return this.samModelName
   }
 
+  getSamBackendName(): string | null {
+    return this.samBackendName
+  }
+
+  getLamaFp16(): boolean | null {
+    return this.lamaFp16
+  }
+
   isReady(): boolean {
     return this.ready
   }
@@ -396,7 +408,9 @@ function healthPayload() {
     status: 'ok',
     worker: {
       model: lamaWorker.getModelName() ?? 'big-lama',
-      samModel: lamaWorker.getSamModelName() ?? 'sam2.1-hiera-large',
+      samModel: lamaWorker.getSamModelName() ?? 'facebook/sam-vit-large',
+      samBackend: lamaWorker.getSamBackendName() ?? 'sam_vit',
+      lamaFp16: lamaWorker.getLamaFp16(),
       ready: lamaWorker.isReady(),
       device: lamaWorker.getDevice() ?? 'initializing',
       requestedDevice: lamaWorker.getRequestedDevice(),
@@ -497,7 +511,7 @@ app.post('/api/segment-point', upload.fields([{ name: 'image', maxCount: 1 }]), 
   } catch (e) {
     const message = String(e instanceof Error ? e.message : e)
     if (message.includes('No module named')) {
-      res.status(500).json({ error: 'SAM2 dependencies are missing. Install required packages (sam2, hydra-core, iopath, omegaconf, torch, torchvision, numpy, pillow).' })
+      res.status(500).json({ error: 'SAM dependencies are missing. Install required packages (sam2 or transformers, hydra-core, iopath, omegaconf, torch, torchvision, numpy, pillow).' })
       return
     }
     res.status(500).json({ error: message })

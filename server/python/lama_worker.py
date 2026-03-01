@@ -23,6 +23,12 @@ try:
 except Exception:  # noqa: BLE001
     SAM2ImagePredictor = None
 
+try:
+    from transformers import SamModel, SamProcessor
+except Exception:  # noqa: BLE001
+    SamModel = None
+    SamProcessor = None
+
 
 def _cuda_available() -> bool:
     return bool(torch is not None and hasattr(torch, "cuda") and torch.cuda.is_available())
@@ -55,6 +61,29 @@ def _is_cuda_compat_error(err: Exception) -> bool:
     )
 
 
+SAM_VIT_MODEL_IDS = {
+    "vit_b": "facebook/sam-vit-base",
+    "vit_l": "facebook/sam-vit-large",
+    "vit_h": "facebook/sam-vit-huge",
+}
+
+
+def _resolve_sam_request(raw: str) -> tuple[str, str]:
+    value = raw.strip() or "vit_l"
+    alias = value.lower()
+    if alias in SAM_VIT_MODEL_IDS:
+        return "sam_vit", SAM_VIT_MODEL_IDS[alias]
+    if alias.startswith("facebook/sam-vit"):
+        return "sam_vit", value
+    return "sam2", value
+
+
+def _pick_lama_fp16(device: str) -> bool:
+    raw = os.environ.get("VORA_LAMA_FP16", "1").strip().lower()
+    enabled = raw not in ("0", "false", "no", "off")
+    return bool(enabled and device == "cuda" and torch is not None and _cuda_available())
+
+
 def _load_big_lama(device: str) -> tuple[Any, str | None]:
     warning: str | None = None
     try:
@@ -81,36 +110,56 @@ def _load_big_lama(device: str) -> tuple[Any, str | None]:
         return SimpleLama(), None
 
 
-def _load_sam_predictor(device: str) -> tuple[Any, str, str | None]:
-    model_name = os.environ.get("VORA_SAM_MODEL", "facebook/sam2.1-hiera-large").strip()
-    if not model_name:
-        model_name = "facebook/sam2.1-hiera-large"
-
+def _load_sam2_predictor(model_name: str, device: str) -> Any:
     if SAM2ImagePredictor is None:
         raise RuntimeError("SAM2 is not installed. Install 'sam2' package.")
-
-    warning: str | None = None
     try:
-        predictor = SAM2ImagePredictor.from_pretrained(model_name, device=device)
-        return predictor, model_name, warning
+        return SAM2ImagePredictor.from_pretrained(model_name, device=device)
     except TypeError:
-        predictor = SAM2ImagePredictor.from_pretrained(model_name)
-        return predictor, model_name, warning
+        return SAM2ImagePredictor.from_pretrained(model_name)
+
+
+def _load_sam_vit_predictor(model_name: str, device: str) -> dict[str, Any]:
+    if SamModel is None or SamProcessor is None:
+        raise RuntimeError(
+            "Transformers SAM dependencies are missing. Install required packages "
+            "(transformers, torch, torchvision, pillow)."
+        )
+    if torch is None:
+        raise RuntimeError("PyTorch is required for SAM vit inference.")
+
+    predictor_device = "cuda" if device == "cuda" and _cuda_available() else "cpu"
+    processor = SamProcessor.from_pretrained(model_name)
+    model = SamModel.from_pretrained(model_name).to(predictor_device)
+    return {"model": model, "processor": processor, "device": predictor_device}
+
+
+def _load_sam_predictor(device: str) -> tuple[Any, str, str | None, str]:
+    requested_model = os.environ.get("VORA_SAM_MODEL", "vit_l").strip()
+    backend, model_name = _resolve_sam_request(requested_model)
+    warning: str | None = None
+
+    try:
+        if backend == "sam_vit":
+            predictor = _load_sam_vit_predictor(model_name, device)
+            return predictor, model_name, warning, backend
+        predictor = _load_sam2_predictor(model_name, device)
+        return predictor, model_name, warning, backend
     except Exception as e:  # noqa: BLE001
         if device == "cuda" and _is_cuda_compat_error(e):
-            warning = "SAM2 CUDA runtime failed. Falling back to CPU."
-            try:
-                predictor = SAM2ImagePredictor.from_pretrained(model_name, device="cpu")
-                return predictor, model_name, warning
-            except TypeError:
-                predictor = SAM2ImagePredictor.from_pretrained(model_name)
-                return predictor, model_name, warning
+            warning = "SAM CUDA runtime failed. Falling back to CPU."
+            if backend == "sam_vit":
+                predictor = _load_sam_vit_predictor(model_name, "cpu")
+                return predictor, model_name, warning, backend
+            predictor = _load_sam2_predictor(model_name, "cpu")
+            return predictor, model_name, warning, backend
         raise
 
 
 REQUESTED_DEVICE, DEVICE, DEVICE_WARNING = _pick_device()
 LAMA_MODEL, LAMA_WARNING = _load_big_lama(DEVICE)
-SAM_PREDICTOR, SAM_MODEL_NAME, SAM_WARNING = _load_sam_predictor(DEVICE)
+SAM_PREDICTOR, SAM_MODEL_NAME, SAM_WARNING, SAM_BACKEND = _load_sam_predictor(DEVICE)
+LAMA_FP16 = _pick_lama_fp16(DEVICE)
 
 ALL_WARNINGS = [w for w in [DEVICE_WARNING, LAMA_WARNING, SAM_WARNING] if w]
 
@@ -134,20 +183,18 @@ def _write(payload: dict[str, Any]) -> None:
 def _run_inpaint(image_b64: str, mask_b64: str) -> Image.Image:
     image = _decode_image(image_b64, "RGB")
     mask = _decode_image(mask_b64, "L")
+    if LAMA_FP16 and torch is not None and hasattr(torch, "autocast"):
+        with torch.inference_mode():
+            with torch.autocast(device_type="cuda", dtype=torch.float16):
+                return LAMA_MODEL(image, mask)
     return LAMA_MODEL(image, mask)
 
 
-def _run_segment_point(image_b64: str, point_x: int, point_y: int) -> Image.Image:
-    image = _decode_image(image_b64, "RGB")
-    image_np = np.array(image)
-    h, w = image_np.shape[:2]
-    x = max(0, min(int(point_x), max(0, w - 1)))
-    y = max(0, min(int(point_y), max(0, h - 1)))
-
+def _run_segment_point_sam2(image_np: np.ndarray, point_x: int, point_y: int) -> Image.Image:
     with torch.inference_mode() if torch is not None else _nullcontext():
         SAM_PREDICTOR.set_image(image_np)
         masks, scores, _ = SAM_PREDICTOR.predict(
-            point_coords=np.array([[x, y]], dtype=np.float32),
+            point_coords=np.array([[point_x, point_y]], dtype=np.float32),
             point_labels=np.array([1], dtype=np.int32),
             multimask_output=True,
         )
@@ -159,6 +206,57 @@ def _run_segment_point(image_b64: str, point_x: int, point_y: int) -> Image.Imag
     best_mask = masks[best_idx]
     mask_u8 = (best_mask.astype(np.uint8) * 255)
     return Image.fromarray(mask_u8, mode="L")
+
+
+def _run_segment_point_sam_vit(image: Image.Image, point_x: int, point_y: int) -> Image.Image:
+    if torch is None:
+        raise RuntimeError("PyTorch is required for SAM vit inference.")
+
+    model = SAM_PREDICTOR["model"]
+    processor = SAM_PREDICTOR["processor"]
+    device = SAM_PREDICTOR["device"]
+
+    inputs = processor(images=image, input_points=[[[point_x, point_y]]], return_tensors="pt")
+    original_sizes = inputs["original_sizes"]
+    reshaped_input_sizes = inputs["reshaped_input_sizes"]
+    if hasattr(inputs, "to"):
+        inputs = inputs.to(device)
+
+    with torch.inference_mode():
+        outputs = model(**inputs)
+
+    masks_list = processor.image_processor.post_process_masks(
+        outputs.pred_masks.cpu(),
+        original_sizes.cpu(),
+        reshaped_input_sizes.cpu(),
+    )
+
+    if not masks_list:
+        raise RuntimeError("SAM vit returned no masks")
+
+    first_masks = masks_list[0]
+    masks_np = first_masks.detach().cpu().numpy() if hasattr(first_masks, "detach") else np.asarray(first_masks)
+    if masks_np.ndim < 3 or masks_np.shape[0] == 0:
+        raise RuntimeError("SAM vit returned no masks")
+
+    scores_tensor = outputs.iou_scores[0]
+    scores_np = scores_tensor.detach().cpu().numpy() if hasattr(scores_tensor, "detach") else np.asarray(scores_tensor)
+    best_idx = int(np.argmax(scores_np)) if scores_np.size > 0 else 0
+    best_mask = masks_np[best_idx]
+    mask_u8 = ((best_mask > 0).astype(np.uint8) * 255)
+    return Image.fromarray(mask_u8, mode="L")
+
+
+def _run_segment_point(image_b64: str, point_x: int, point_y: int) -> Image.Image:
+    image = _decode_image(image_b64, "RGB")
+    image_np = np.array(image)
+    h, w = image_np.shape[:2]
+    x = max(0, min(int(point_x), max(0, w - 1)))
+    y = max(0, min(int(point_y), max(0, h - 1)))
+
+    if SAM_BACKEND == "sam_vit":
+        return _run_segment_point_sam_vit(image, x, y)
+    return _run_segment_point_sam2(image_np, x, y)
 
 
 class _nullcontext:
@@ -176,7 +274,9 @@ _write(
         "device": DEVICE,
         "cuda_available": _cuda_available(),
         "model": "big-lama",
+        "lama_fp16": LAMA_FP16,
         "sam_model": SAM_MODEL_NAME,
+        "sam_backend": SAM_BACKEND,
         "warning": " | ".join(ALL_WARNINGS) if ALL_WARNINGS else None,
     }
 )

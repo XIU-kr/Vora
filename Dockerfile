@@ -18,6 +18,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=18743
 ENV VORA_DEVICE=auto
+ENV VORA_SAM_MODEL=vit_l
+ENV VORA_LAMA_FP16=1
 ENV VORA_PYTHON=/opt/venv-lama/bin/python
 ENV VORA_WORKER_TIMEOUT_MS=600000
 ENV VORA_BOOT_TIMEOUT_MS=120000
@@ -47,7 +49,7 @@ RUN python3 -m venv /opt/venv-lama \
     --index-url https://download.pytorch.org/whl/cu128 \
     torch==2.9.1 torchvision==0.24.1 \
   && /opt/venv-lama/bin/python -m pip install --no-cache-dir \
-    fire==0.5.0 "pillow>=11.0.0" "filelock>=3.20.3" numpy==1.26.4 opencv-python==4.10.0.84 \
+    fire==0.5.0 "pillow>=11.0.0" "filelock>=3.20.3" numpy==1.26.4 opencv-python==4.10.0.84 "transformers>=4.45.0" \
   && /opt/venv-lama/bin/python -m pip install --no-cache-dir \
     --no-deps simple-lama-inpainting==0.1.2 \
   && SAM2_BUILD_CUDA=0 /opt/venv-lama/bin/python -m pip install --no-cache-dir \

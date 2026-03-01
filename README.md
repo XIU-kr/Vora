@@ -10,7 +10,7 @@ Web-based AI image editing engine built for smart visual editing.
 ## Core features
 
 - AI restore uses Big-LaMa (GPU-first with CPU fallback).
-- AI select tool uses SAM2 point-based segmentation.
+- AI select tool uses SAM `vit_l` by default (point-based segmentation).
 - After selecting a subject, right panel actions support:
   - delete selected area,
   - transparent background,
@@ -47,14 +47,16 @@ docker run --rm -p 18743:18743 xiukr/vora:latest
 ```bash
 docker run --rm --gpus all -p 18743:18743 \
   -e VORA_DEVICE=auto \
-  -e VORA_SAM_MODEL=facebook/sam2.1-hiera-large \
+  -e VORA_SAM_MODEL=vit_l \
+  -e VORA_LAMA_FP16=1 \
   -e VORA_WORKER_TIMEOUT_MS=600000 \
   -e VORA_BOOT_TIMEOUT_MS=120000 \
   xiukr/vora:latest
 ```
 
 - `VORA_DEVICE=auto|cpu|cuda`
-- `VORA_SAM_MODEL`: SAM2 model id (default: `facebook/sam2.1-hiera-large`)
+- `VORA_SAM_MODEL`: `vit_l` (default), `vit_b`, `vit_h`, or SAM2 model id (example: `facebook/sam2.1-hiera-large`)
+- `VORA_LAMA_FP16`: Big-LaMa fp16 mode on CUDA (`1` default, `0` to disable)
 - `VORA_WORKER_TIMEOUT_MS`: worker request timeout
 - `VORA_BOOT_TIMEOUT_MS`: worker startup timeout
 
