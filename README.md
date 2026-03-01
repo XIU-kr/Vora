@@ -46,17 +46,17 @@ docker run --rm -p 18743:18743 xiukr/vora:latest
 
 ```bash
 docker run --rm --gpus all -p 18743:18743 \
-  -e LAMIVI_DEVICE=auto \
-  -e LAMIVI_SAM_MODEL=facebook/sam2.1-hiera-large \
-  -e LAMIVI_WORKER_TIMEOUT_MS=600000 \
-  -e LAMIVI_BOOT_TIMEOUT_MS=120000 \
+  -e VORA_DEVICE=auto \
+  -e VORA_SAM_MODEL=facebook/sam2.1-hiera-large \
+  -e VORA_WORKER_TIMEOUT_MS=600000 \
+  -e VORA_BOOT_TIMEOUT_MS=120000 \
   xiukr/vora:latest
 ```
 
-- `LAMIVI_DEVICE=auto|cpu|cuda`
-- `LAMIVI_SAM_MODEL`: SAM2 model id (default: `facebook/sam2.1-hiera-large`)
-- `LAMIVI_WORKER_TIMEOUT_MS`: worker request timeout
-- `LAMIVI_BOOT_TIMEOUT_MS`: worker startup timeout
+- `VORA_DEVICE=auto|cpu|cuda`
+- `VORA_SAM_MODEL`: SAM2 model id (default: `facebook/sam2.1-hiera-large`)
+- `VORA_WORKER_TIMEOUT_MS`: worker request timeout
+- `VORA_BOOT_TIMEOUT_MS`: worker startup timeout
 
 ## Health check
 
@@ -75,6 +75,5 @@ docker run -d --name vora --gpus all -p 18743:18743 xiukr/vora:latest
 
 ## Notes
 
-- Main automatic Docker publish target is `dev`.
-- `latest` is intended for manual release publication.
-- Docker Hub repository: `XIUkr/Vora`.
+- Docker publish workflow always pushes `xiukr/vora:latest`.
+- Docker Hub image path used for pull/run/publish: `xiukr/vora` (Docker Hub UI may display `XIUkr/Vora`).

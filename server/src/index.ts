@@ -47,7 +47,7 @@ function resolveWithWhere(names: string[]): string[] {
 }
 
 function buildPythonCandidates(): PythonCommand[] {
-  const explicit = process.env.LAMIVI_PYTHON?.trim()
+  const explicit = (process.env.VORA_PYTHON ?? process.env.LAMIVI_PYTHON)?.trim()
   if (explicit) return [{ bin: explicit, args: [] }]
 
   if (process.platform !== 'win32') {
@@ -86,8 +86,8 @@ function buildPythonCandidates(): PythonCommand[] {
 }
 
 const PYTHON_CANDIDATES = buildPythonCandidates()
-const WORKER_TIMEOUT_MS = Number(process.env.LAMIVI_WORKER_TIMEOUT_MS ?? 120000)
-const WORKER_BOOT_TIMEOUT_MS = Number(process.env.LAMIVI_BOOT_TIMEOUT_MS ?? 120000)
+const WORKER_TIMEOUT_MS = Number(process.env.VORA_WORKER_TIMEOUT_MS ?? process.env.LAMIVI_WORKER_TIMEOUT_MS ?? 120000)
+const WORKER_BOOT_TIMEOUT_MS = Number(process.env.VORA_BOOT_TIMEOUT_MS ?? process.env.LAMIVI_BOOT_TIMEOUT_MS ?? 120000)
 const WORKER_SCRIPT = path.resolve(__dirname, '../python/lama_worker.py')
 
 type WorkerRequest = {
@@ -103,7 +103,7 @@ class LamaWorkerClient {
   private ready = false
   private device: string | null = null
   private requestedDevice: 'auto' | 'cpu' | 'cuda' = ((): 'auto' | 'cpu' | 'cuda' => {
-    const raw = (process.env.LAMIVI_DEVICE ?? 'auto').toLowerCase().trim()
+    const raw = (process.env.VORA_DEVICE ?? process.env.LAMIVI_DEVICE ?? 'auto').toLowerCase().trim()
     return raw === 'cpu' || raw === 'cuda' ? raw : 'auto'
   })()
   private cudaAvailable: boolean | null = null
@@ -208,7 +208,7 @@ class LamaWorkerClient {
           stdio: ['pipe', 'pipe', 'pipe'],
           env: {
             ...process.env,
-            LAMIVI_DEVICE: this.requestedDevice,
+            VORA_DEVICE: this.requestedDevice,
           },
           shell: false,
         })

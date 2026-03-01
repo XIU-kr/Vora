@@ -3,14 +3,7 @@ name: Docker Publish (Docker Hub)
 on:
   push:
     branches: ["main"]
-    tags: ["v*"]
   workflow_dispatch:
-    inputs:
-      publish_latest:
-        description: "Also publish latest tag"
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -49,9 +42,7 @@ jobs:
           images: |
             name=docker.io/xiukr/vora
           tags: |
-            type=raw,value=dev,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.publish_latest == 'true' }}
-            type=ref,event=tag
+            type=raw,value=latest
 
       - uses: docker/build-push-action@v6
         with:
