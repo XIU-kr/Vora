@@ -1118,6 +1118,12 @@ const UI = {
     selectionActionReplaceBg: '이미지 배경 교체',
     selectionActionRestore: 'AI 복원 실행',
     selectionActionClear: '선택 초기화',
+    selectionModify: '선택 영역 수정',
+    selectionInvert: '반전',
+    selectionExpand: '확장',
+    selectionContract: '축소',
+    selectionFeather: '페더',
+    autoBgRemove: '배경 자동 제거',
     aiPreviewTitle: 'AI 실행 미리보기',
     aiPreviewConfirm: '선택 영역에 실행할까요?',
     aiPreviewArea: '대상 영역',
@@ -1548,6 +1554,12 @@ const UI = {
     selectionActionReplaceBg: 'Replace with image background',
     selectionActionRestore: 'Run AI restore',
     selectionActionClear: 'Clear selection',
+    selectionModify: 'Modify Selection',
+    selectionInvert: 'Invert',
+    selectionExpand: 'Expand',
+    selectionContract: 'Contract',
+    selectionFeather: 'Feather',
+    autoBgRemove: 'Auto Remove BG',
     aiPreviewTitle: 'AI action preview',
     aiPreviewConfirm: 'Run on selected area?',
     aiPreviewArea: 'Target area',
@@ -1888,6 +1900,8 @@ function App() {
   const [selectionMaskImage, setSelectionMaskImage] = useState<HTMLImageElement | null>(null)
   const [selectionMaskBounds, setSelectionMaskBounds] = useState<CropRect | null>(null)
   const [antsDashOffset, setAntsDashOffset] = useState(0)
+  const [expandContractRadius, setExpandContractRadius] = useState(5)
+  const [featherRadius, setFeatherRadius] = useState(5)
   const [selectionFillColor, setSelectionFillColor] = useState('#ffffff')
   const [selectionBackgroundImageUrl, setSelectionBackgroundImageUrl] = useState<string | null>(null)
   const [fontSearchQuery, setFontSearchQuery] = useState('')
@@ -4825,6 +4839,71 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     }
   }
 
+  async function invertSelection() {
+    if (!active || !selectionMaskDataUrl) return
+    const img = await loadHtmlImage(selectionMaskDataUrl)
+    const canvas = document.createElement('canvas')
+    canvas.width = active.width; canvas.height = active.height
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(img, 0, 0)
+    const data = ctx.getImageData(0, 0, active.width, active.height)
+    for (let i = 0; i < data.data.length; i += 4) {
+      const v = data.data[i] ?? 0
+      data.data[i] = data.data[i + 1] = data.data[i + 2] = 255 - v
+      data.data[i + 3] = 255
+    }
+    ctx.putImageData(data, 0, 0)
+    const newUrl = canvas.toDataURL('image/png')
+    setSelectionMaskDataUrl(newUrl)
+    const bounds = findNonZeroMaskBounds(data.data, active.width, active.height)
+    setSelectionMaskBounds(bounds)
+  }
+
+  async function morphSelection(radius: number, mode: 'expand' | 'contract') {
+    if (!active || !selectionMaskDataUrl) return
+    const img = await loadHtmlImage(selectionMaskDataUrl)
+    const canvas = document.createElement('canvas')
+    canvas.width = active.width; canvas.height = active.height
+    const ctx = canvas.getContext('2d')!
+    ctx.filter = `blur(${radius}px)`
+    ctx.drawImage(img, 0, 0)
+    ctx.filter = 'none'
+    const data = ctx.getImageData(0, 0, active.width, active.height)
+    const threshold = mode === 'expand' ? 50 : 200
+    for (let i = 0; i < data.data.length; i += 4) {
+      const v = data.data[i] ?? 0
+      const out = v > threshold ? 255 : 0
+      data.data[i] = data.data[i + 1] = data.data[i + 2] = out
+      data.data[i + 3] = 255
+    }
+    ctx.putImageData(data, 0, 0)
+    const newUrl = canvas.toDataURL('image/png')
+    setSelectionMaskDataUrl(newUrl)
+    const bounds = findNonZeroMaskBounds(data.data, active.width, active.height)
+    setSelectionMaskBounds(bounds)
+  }
+
+  async function featherSelection(radius: number) {
+    if (!active || !selectionMaskDataUrl) return
+    const img = await loadHtmlImage(selectionMaskDataUrl)
+    const canvas = document.createElement('canvas')
+    canvas.width = active.width; canvas.height = active.height
+    const ctx = canvas.getContext('2d')!
+    ctx.filter = `blur(${radius}px)`
+    ctx.drawImage(img, 0, 0)
+    ctx.filter = 'none'
+    const data = ctx.getImageData(0, 0, active.width, active.height)
+    for (let i = 0; i < data.data.length; i += 4) {
+      const v = data.data[i] ?? 0
+      data.data[i] = data.data[i + 1] = data.data[i + 2] = v
+      data.data[i + 3] = 255
+    }
+    ctx.putImageData(data, 0, 0)
+    setSelectionMaskDataUrl(canvas.toDataURL('image/png'))
+    const bounds = findNonZeroMaskBounds(data.data, active.width, active.height)
+    setSelectionMaskBounds(bounds)
+  }
+
   async function onSelectionBackgroundImageChange(fileList: FileList | null) {
     const file = fileList?.[0]
     if (!file) return
@@ -7404,6 +7483,19 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   <div className="buttonRow">
                     <button className="btn primary" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('restoreSelection')}>{ui.selectionActionRestore}</button>
                     <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => { setSelectionMaskDataUrl(null); setSelectionMaskBounds(null); setSelectionBackgroundImageUrl(null); setAntsDashOffset(0); }}>{ui.selectionActionClear}</button>
+                  </div>
+                  <div className="label">{ui.selectionModify}</div>
+                  <div className="buttonRow">
+                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void invertSelection()}>{ui.selectionInvert}</button>
+                  </div>
+                  <div className="buttonRow">
+                    <input type="number" min={1} max={50} value={expandContractRadius} onChange={(e) => setExpandContractRadius(Number(e.target.value))} style={{ width: 48 }} />
+                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'expand')}>{ui.selectionExpand}</button>
+                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'contract')}>{ui.selectionContract}</button>
+                  </div>
+                  <div className="buttonRow">
+                    <input type="number" min={1} max={50} value={featherRadius} onChange={(e) => setFeatherRadius(Number(e.target.value))} style={{ width: 48 }} />
+                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void featherSelection(featherRadius)}>{ui.selectionFeather}</button>
                   </div>
                 </>
               ) : null}
