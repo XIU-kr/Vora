@@ -10,7 +10,7 @@ services:
       - VORA_LAMA_FP16=1
       - VORA_PYTHON=/opt/venv-lama/bin/python
       - VORA_WORKER_TIMEOUT_MS=600000
-      - VORA_BOOT_TIMEOUT_MS=120000
+      - VORA_BOOT_TIMEOUT_MS=600000
     volumes:
       - vora_torch_cache:/root/.cache/torch
       - vora_lama_cache:/root/.cache/lama

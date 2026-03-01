@@ -158,21 +158,10 @@ def _load_sam_predictor(device: str) -> tuple[Any, str, str | None, str]:
 
 REQUESTED_DEVICE, DEVICE, DEVICE_WARNING = _pick_device()
 LAMA_MODEL, LAMA_WARNING = _load_big_lama(DEVICE)
-SAM_REQUEST_BACKEND, SAM_REQUEST_MODEL = _resolve_sam_request(os.environ.get("VORA_SAM_MODEL", "vit_l"))
-SAM_PREDICTOR: Any | None = None
-SAM_MODEL_NAME = SAM_REQUEST_MODEL
-SAM_BACKEND = SAM_REQUEST_BACKEND
-SAM_WARNING: str | None = None
+SAM_PREDICTOR, SAM_MODEL_NAME, SAM_WARNING, SAM_BACKEND = _load_sam_predictor(DEVICE)
 LAMA_FP16 = _pick_lama_fp16(DEVICE)
 
 ALL_WARNINGS = [w for w in [DEVICE_WARNING, LAMA_WARNING, SAM_WARNING] if w]
-
-
-def _ensure_sam_predictor() -> None:
-    global SAM_PREDICTOR, SAM_MODEL_NAME, SAM_WARNING, SAM_BACKEND
-    if SAM_PREDICTOR is not None:
-        return
-    SAM_PREDICTOR, SAM_MODEL_NAME, SAM_WARNING, SAM_BACKEND = _load_sam_predictor(DEVICE)
 
 
 def _decode_image(b64: str, mode: str) -> Image.Image:
@@ -267,8 +256,6 @@ def _run_segment_point_sam_vit(image: Image.Image, point_x: int, point_y: int) -
 
 
 def _run_segment_point(image_b64: str, point_x: int, point_y: int) -> Image.Image:
-    _ensure_sam_predictor()
-
     image = _decode_image(image_b64, "RGB")
     image_np = np.array(image)
     h, w = image_np.shape[:2]

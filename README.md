@@ -50,7 +50,7 @@ docker run --rm --gpus all -p 18743:18743 \
   -e VORA_SAM_MODEL=vit_l \
   -e VORA_LAMA_FP16=1 \
   -e VORA_WORKER_TIMEOUT_MS=600000 \
-  -e VORA_BOOT_TIMEOUT_MS=120000 \
+  -e VORA_BOOT_TIMEOUT_MS=600000 \
   xiukr/vora:latest
 ```
 

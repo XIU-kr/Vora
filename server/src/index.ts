@@ -87,7 +87,7 @@ function buildPythonCandidates(): PythonCommand[] {
 
 const PYTHON_CANDIDATES = buildPythonCandidates()
 const WORKER_TIMEOUT_MS = Number(process.env.VORA_WORKER_TIMEOUT_MS ?? 120000)
-const WORKER_BOOT_TIMEOUT_MS = Number(process.env.VORA_BOOT_TIMEOUT_MS ?? 120000)
+const WORKER_BOOT_TIMEOUT_MS = Number(process.env.VORA_BOOT_TIMEOUT_MS ?? 600000)
 const WORKER_SCRIPT = path.resolve(__dirname, '../python/lama_worker.py')
 
 type WorkerRequest = {
