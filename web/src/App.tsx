@@ -3482,6 +3482,29 @@ function App() {
     }
   }, [])
 
+  const handleFilesRef = useRef<(files: FileList | null) => Promise<void>>(async () => { /* noop */ })
+
+  useEffect(() => {
+    async function onPaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items
+      if (!items) return
+      const files: File[] = []
+      for (const item of Array.from(items)) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) files.push(file)
+        }
+      }
+      if (files.length === 0) return
+      e.preventDefault()
+      const list = new DataTransfer()
+      files.forEach((f) => list.items.add(f))
+      await handleFilesRef.current(list.files)
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [])
+
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return
     setBusy(ui.importing)
@@ -3530,6 +3553,8 @@ function App() {
       setBusy(null)
     }
   }
+
+  handleFilesRef.current = handleFiles
 
   function cloneAsset(asset: PageAsset): PageAsset {
     return {
