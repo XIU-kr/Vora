@@ -256,6 +256,9 @@ def _run_segment_point_sam_vit(image: Image.Image, point_x: int, point_y: int) -
     if best_idx >= masks_np.shape[0]:
         best_idx = 0
     best_mask = masks_np[best_idx]
+    # post_process_masks returns shape (num_masks, 1, H, W); squeeze channel dim
+    if best_mask.ndim == 3 and best_mask.shape[0] == 1:
+        best_mask = best_mask[0]
     mask_u8 = ((best_mask > 0).astype(np.uint8) * 255)
     return Image.fromarray(mask_u8, mode="L")
 
