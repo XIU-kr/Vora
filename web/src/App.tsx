@@ -1127,6 +1127,10 @@ const UI = {
     imageTransform: '이미지 변환',
     flipH: '좌우 반전',
     flipV: '상하 반전',
+    imageResize: '이미지 크기 조정',
+    lockAspect: '비율 고정',
+    applyResize: '적용',
+    resizing: '크기 조정 중…',
     aiPreviewTitle: 'AI 실행 미리보기',
     aiPreviewConfirm: '선택 영역에 실행할까요?',
     aiPreviewArea: '대상 영역',
@@ -1566,6 +1570,10 @@ const UI = {
     imageTransform: 'Image Transform',
     flipH: 'Flip H',
     flipV: 'Flip V',
+    imageResize: 'Image Resize',
+    lockAspect: 'Lock aspect ratio',
+    applyResize: 'Apply Resize',
+    resizing: 'Resizing…',
     aiPreviewTitle: 'AI action preview',
     aiPreviewConfirm: 'Run on selected area?',
     aiPreviewArea: 'Target area',
@@ -1908,6 +1916,9 @@ function App() {
   const [antsDashOffset, setAntsDashOffset] = useState(0)
   const [expandContractRadius, setExpandContractRadius] = useState(5)
   const [featherRadius, setFeatherRadius] = useState(5)
+  const [resizeWidth, setResizeWidth] = useState(0)
+  const [resizeHeight, setResizeHeight] = useState(0)
+  const [resizeLockAspect, setResizeLockAspect] = useState(true)
   const [selectionFillColor, setSelectionFillColor] = useState('#ffffff')
   const [selectionBackgroundImageUrl, setSelectionBackgroundImageUrl] = useState<string | null>(null)
   const [fontSearchQuery, setFontSearchQuery] = useState('')
@@ -2455,6 +2466,10 @@ function App() {
     cropResizeRef.current = null
     setCanvasOffset({ x: 0, y: 0 })
   }, [activeId])
+
+  useEffect(() => {
+    if (active) { setResizeWidth(active.width); setResizeHeight(active.height) }
+  }, [active?.id])
 
   useEffect(() => {
     if (!active) {
@@ -4893,6 +4908,33 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
       texts: a.texts.map((t) => flipTextItem(t, axis, w, h)),
     }))
     setSelectionMaskDataUrl(null); setSelectionMaskBounds(null)
+  }
+
+  async function applyResize() {
+    if (!active || resizeWidth < 1 || resizeHeight < 1) return
+    if (resizeWidth === active.width && resizeHeight === active.height) return
+    setBusy(ui.resizing)
+    try {
+      const canvas = document.createElement('canvas')
+      canvas.width = resizeWidth; canvas.height = resizeHeight
+      const ctx = canvas.getContext('2d')!
+      const img = await loadHtmlImage(active.baseDataUrl)
+      ctx.drawImage(img, 0, 0, resizeWidth, resizeHeight)
+      const resultUrl = canvas.toDataURL('image/png')
+      const scaleX = resizeWidth / active.width
+      const scaleY = resizeHeight / active.height
+      updateActiveWithHistory(`Resize to ${resizeWidth}×${resizeHeight}`, (a) => ({
+        ...a,
+        width: resizeWidth,
+        height: resizeHeight,
+        baseDataUrl: resultUrl,
+        texts: a.texts.map((t) => ({ ...t, x: t.x * scaleX, y: t.y * scaleY, fontSize: t.fontSize * Math.min(scaleX, scaleY) })),
+      }))
+      setSelectionMaskDataUrl(null); setSelectionMaskBounds(null)
+      setStatus(ui.done)
+    } finally {
+      setBusy(null)
+    }
   }
 
   async function autoRemoveBackground() {
@@ -7555,6 +7597,26 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   <div className="buttonRow">
                     <button className="btn" disabled={!!busy} onClick={() => void flipImage('h')}>{ui.flipH}</button>
                     <button className="btn" disabled={!!busy} onClick={() => void flipImage('v')}>{ui.flipV}</button>
+                  </div>
+                  <div className="label">{ui.imageResize}</div>
+                  <div className="buttonRow">
+                    <input type="number" min={1} value={resizeWidth} onChange={(e) => {
+                      const v = Number(e.target.value)
+                      setResizeWidth(v)
+                      if (resizeLockAspect && active) setResizeHeight(Math.round(v * (active.height / active.width)))
+                    }} style={{ width: 64 }} />
+                    <span>×</span>
+                    <input type="number" min={1} value={resizeHeight} onChange={(e) => {
+                      const v = Number(e.target.value)
+                      setResizeHeight(v)
+                      if (resizeLockAspect && active) setResizeWidth(Math.round(v * (active.width / active.height)))
+                    }} style={{ width: 64 }} />
+                    <button className="btn" title={ui.lockAspect} onClick={() => setResizeLockAspect((p) => !p)}>
+                      {resizeLockAspect ? '🔒' : '🔓'}
+                    </button>
+                  </div>
+                  <div className="buttonRow">
+                    <button className="btn primary" disabled={!!busy} onClick={() => void applyResize()}>{ui.applyResize}</button>
                   </div>
                 </>
               ) : null}
