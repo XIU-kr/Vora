@@ -207,8 +207,10 @@ def _run_segment_point_sam2(image_np: np.ndarray, point_x: int, point_y: int) ->
     if masks is None or len(masks) == 0:
         raise RuntimeError("SAM2 returned no masks")
 
-    best_idx = int(np.argmax(scores)) if scores is not None and len(scores) > 0 else 0
-    best_mask = masks[best_idx]
+        best_idx = int(np.argmax(scores)) if scores is not None and len(scores) > 0 else 0
+        if best_idx >= len(masks):
+            best_idx = 0
+        best_mask = masks[best_idx]
     mask_u8 = (best_mask.astype(np.uint8) * 255)
     return Image.fromarray(mask_u8, mode="L")
 
@@ -251,6 +253,8 @@ def _run_segment_point_sam_vit(image: Image.Image, point_x: int, point_y: int) -
     scores_tensor = outputs.iou_scores[0]
     scores_np = scores_tensor.detach().cpu().numpy() if hasattr(scores_tensor, "detach") else np.asarray(scores_tensor)
     best_idx = int(np.argmax(scores_np)) if scores_np.size > 0 else 0
+    if best_idx >= masks_np.shape[0]:
+        best_idx = 0
     best_mask = masks_np[best_idx]
     mask_u8 = ((best_mask > 0).astype(np.uint8) * 255)
     return Image.fromarray(mask_u8, mode="L")
