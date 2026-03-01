@@ -7,7 +7,7 @@ import PptxGenJS from 'pptxgenjs'
 import './App.css'
 import type { LayerGroup, MaskStroke, PageAsset, TextItem, Tool } from './lib/types'
 import { importImageFile, importPdfFile } from './lib/importers'
-import { inpaintViaApi } from './lib/api'
+import { inpaintViaApi, segmentPointViaApi } from './lib/api'
 import { dataUrlToBlob, downloadBlob } from './lib/download'
 
 type Size = { w: number; h: number }
@@ -55,6 +55,8 @@ type PendingMaskAction = {
   assetId: string
   strokes: MaskStroke[]
 }
+
+type SelectionAction = 'eraseSelection' | 'transparentBackground' | 'fillBackground' | 'replaceBackground' | 'restoreSelection'
 
 type NormalizedStroke = {
   points: number[]
@@ -116,6 +118,7 @@ const ERR_CANVAS_UNAVAILABLE = 'ERR_CANVAS_UNAVAILABLE'
 const ERR_PNG_CONVERT_FAILED = 'ERR_PNG_CONVERT_FAILED'
 const ERR_IMAGE_LOAD_FAILED = 'ERR_IMAGE_LOAD_FAILED'
 const ERR_DATA_URL_CONVERT_FAILED = 'ERR_DATA_URL_CONVERT_FAILED'
+const ERR_SEGMENT_MASK_EMPTY = 'ERR_SEGMENT_MASK_EMPTY'
 
 function uid(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -466,6 +469,63 @@ function dominantNeighborColor(ctx: CanvasRenderingContext2D, width: number, hei
   }
   if (!best) return 'rgb(255, 255, 255)'
   return `rgb(${Math.round(best.r / best.count)}, ${Math.round(best.g / best.count)}, ${Math.round(best.b / best.count)})`
+}
+
+function drawImageCover(ctx: CanvasRenderingContext2D, image: CanvasImageSource, width: number, height: number) {
+  const sourceW = (image as HTMLImageElement).width ?? width
+  const sourceH = (image as HTMLImageElement).height ?? height
+  const scale = Math.max(width / Math.max(1, sourceW), height / Math.max(1, sourceH))
+  const drawW = sourceW * scale
+  const drawH = sourceH * scale
+  const dx = (width - drawW) / 2
+  const dy = (height - drawH) / 2
+  ctx.drawImage(image, dx, dy, drawW, drawH)
+}
+
+function resolveFillColorRgb(color: string): [number, number, number] {
+  const cv = document.createElement('canvas')
+  cv.width = 1
+  cv.height = 1
+  const cx = cv.getContext('2d')
+  if (!cx) return [255, 255, 255]
+  cx.clearRect(0, 0, 1, 1)
+  cx.fillStyle = color
+  cx.fillRect(0, 0, 1, 1)
+  const data = cx.getImageData(0, 0, 1, 1).data
+  return [data[0] ?? 255, data[1] ?? 255, data[2] ?? 255]
+}
+
+async function renderMaskImageToBlob(maskDataUrl: string): Promise<Blob> {
+  const img = await loadHtmlImage(maskDataUrl)
+  const canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = img.height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+  ctx.drawImage(img, 0, 0)
+  const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
+  if (!blob) throw new Error(ERR_PNG_CONVERT_FAILED)
+  return blob
+}
+
+function findNonZeroMaskBounds(maskData: Uint8ClampedArray, width: number, height: number): CropRect | null {
+  let minX = width
+  let minY = height
+  let maxX = -1
+  let maxY = -1
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const idx = (y * width + x) * 4
+      const value = maskData[idx] ?? 0
+      if (value < 8) continue
+      if (x < minX) minX = x
+      if (y < minY) minY = y
+      if (x > maxX) maxX = x
+      if (y > maxY) maxY = y
+    }
+  }
+  if (maxX < minX || maxY < minY) return null
+  return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 }
 }
 
 async function renderAssetToDataUrl(
@@ -939,6 +999,7 @@ const UI = {
     brush: '브러시',
     aiRestore: 'AI 복원',
     aiEraser: 'AI 지우개',
+    aiSelect: 'AI 선택',
     text: '텍스트',
     move: '이동',
     addText: '텍스트 추가',
@@ -980,6 +1041,7 @@ const UI = {
     textInsertArmed: '텍스트 삽입 대기: 캔버스를 클릭하세요',
     canvasMenuToolRestore: 'AI 복원 도구',
     canvasMenuToolEraser: 'AI 지우개 도구',
+    canvasMenuToolSelect: 'AI 선택 도구',
     canvasMenuToolText: '텍스트 도구',
     canvasMenuToolMove: '이동 도구',
     canvasMenuZoomReset: '배율 100%로 초기화',
@@ -1042,6 +1104,19 @@ const UI = {
     opacity: '불투명도',
     restoreHint: '브러시로 칠하고 마우스를 떼면 즉시 AI 복원이 실행됩니다.',
     eraserHint: '브러시로 칠하면 주변 색을 즉시 채워 지웁니다.',
+    selectionToolHint: '대상을 클릭하면 SAM으로 자동 분할 선택합니다.',
+    selectionMaskEmpty: '선택 마스크가 없습니다',
+    selectionRunning: 'AI 선택 실행 중…',
+    selectionDone: '선택 마스크 생성 완료',
+    selectionFillColor: '배경 채우기 색상',
+    selectionPickBackgroundImage: '배경 이미지 선택',
+    selectionBackgroundImageReady: '배경 이미지 준비됨',
+    selectionActionErase: '선택 삭제',
+    selectionActionTransparentBg: '투명 배경 만들기',
+    selectionActionFillBg: '단색 배경 채우기',
+    selectionActionReplaceBg: '이미지 배경 교체',
+    selectionActionRestore: 'AI 복원 실행',
+    selectionActionClear: '선택 초기화',
     aiPreviewTitle: 'AI 실행 미리보기',
     aiPreviewConfirm: '선택 영역에 실행할까요?',
     aiPreviewArea: '대상 영역',
@@ -1085,6 +1160,7 @@ const UI = {
     noSelectedText: '텍스트를 선택하면 상세 설정이 표시됩니다.',
     modeRestore: '모드: AI 복원',
     modeEraser: '모드: AI 지우개',
+    modeSelect: '모드: AI 선택',
     modeText: '모드: 텍스트 입력',
     modeCrop: '모드: 잘라내기',
     modeMove: '모드: 이동',
@@ -1352,6 +1428,7 @@ const UI = {
     brush: 'Brush',
     aiRestore: 'AI Restore',
     aiEraser: 'AI Eraser',
+    aiSelect: 'AI Select',
     text: 'Text',
     move: 'Move',
     addText: 'Add text',
@@ -1393,6 +1470,7 @@ const UI = {
     textInsertArmed: 'Text insert armed: click canvas',
     canvasMenuToolRestore: 'Use AI Restore tool',
     canvasMenuToolEraser: 'Use AI Eraser tool',
+    canvasMenuToolSelect: 'Use AI Select tool',
     canvasMenuToolText: 'Use Text tool',
     canvasMenuToolMove: 'Use Move tool',
     canvasMenuZoomReset: 'Reset zoom to 100%',
@@ -1455,6 +1533,19 @@ const UI = {
     opacity: 'Opacity',
     restoreHint: 'Paint with brush and release mouse to run AI restore automatically.',
     eraserHint: 'Paint with brush to instantly fill using nearby colors.',
+    selectionToolHint: 'Click a subject to create a SAM selection mask.',
+    selectionMaskEmpty: 'No selection mask',
+    selectionRunning: 'Running AI selection…',
+    selectionDone: 'Selection mask created',
+    selectionFillColor: 'Background fill color',
+    selectionPickBackgroundImage: 'Choose background image',
+    selectionBackgroundImageReady: 'Background image ready',
+    selectionActionErase: 'Delete selection',
+    selectionActionTransparentBg: 'Make transparent background',
+    selectionActionFillBg: 'Fill solid background',
+    selectionActionReplaceBg: 'Replace with image background',
+    selectionActionRestore: 'Run AI restore',
+    selectionActionClear: 'Clear selection',
     aiPreviewTitle: 'AI action preview',
     aiPreviewConfirm: 'Run on selected area?',
     aiPreviewArea: 'Target area',
@@ -1498,6 +1589,7 @@ const UI = {
     noSelectedText: 'Select text to see detailed controls.',
     modeRestore: 'Mode: AI Restore',
     modeEraser: 'Mode: AI Eraser',
+    modeSelect: 'Mode: AI Select',
     modeText: 'Mode: Text Insert',
     modeCrop: 'Mode: Crop',
     modeMove: 'Mode: Move',
@@ -1778,6 +1870,11 @@ function App() {
       const [status = '', ...tail] = rest
       return `${ui.errInpaintHttp(status, tail.join(':').trim())} ${ui.errApiActionHint}`
     }
+    if (code === 'ERR_SEGMENT_NON_IMAGE') return `${ui.errInpaintNonImage(detail)} ${ui.errApiActionHint}`
+    if (code === 'ERR_SEGMENT_HTTP') {
+      const [status = '', ...tail] = rest
+      return `${ui.errInpaintHttp(status, tail.join(':').trim())} ${ui.errApiActionHint}`
+    }
     return message
   }
   const [assets, setAssets] = useState<PageAsset[]>([])
@@ -1785,6 +1882,11 @@ function App() {
   const [assetListHistoryPast, setAssetListHistoryPast] = useState<AssetListHistoryEntry[]>([])
   const [assetListHistoryFuture, setAssetListHistoryFuture] = useState<AssetListHistoryEntry[]>([])
   const [historyQuery, setHistoryQuery] = useState('')
+  const [selectionMaskDataUrl, setSelectionMaskDataUrl] = useState<string | null>(null)
+  const [selectionMaskImage, setSelectionMaskImage] = useState<HTMLImageElement | null>(null)
+  const [selectionMaskBounds, setSelectionMaskBounds] = useState<CropRect | null>(null)
+  const [selectionFillColor, setSelectionFillColor] = useState('#ffffff')
+  const [selectionBackgroundImageUrl, setSelectionBackgroundImageUrl] = useState<string | null>(null)
   const [fontSearchQuery, setFontSearchQuery] = useState('')
   const active = useMemo(() => assets.find((a) => a.id === activeId) ?? null, [assets, activeId])
 
@@ -2131,6 +2233,7 @@ function App() {
   const [isFileDragOver, setIsFileDragOver] = useState(false)
   const inpaintQueueRef = useRef<InpaintJob[]>([])
   const inpaintRunningRef = useRef(false)
+  const selectionBackgroundInputRef = useRef<HTMLInputElement | null>(null)
   const debounceTimerRef = useRef<number | null>(null)
   const cropStartRef = useRef<{ x: number; y: number } | null>(null)
   const cropResizeRef = useRef<{ handle: CropHandle; rect: CropRect } | null>(null)
@@ -2933,6 +3036,9 @@ function App() {
   useEffect(() => {
     if (!active) {
       clearTextSelection()
+      setSelectionMaskDataUrl(null)
+      setSelectionMaskImage(null)
+      setSelectionMaskBounds(null)
       return
     }
     setSelectedTextIds((prev) => prev.filter((id) => active.texts.some((t) => t.id === id)))
@@ -2940,6 +3046,39 @@ function App() {
       clearTextSelection()
     }
   }, [active, selectedTextId])
+
+  useEffect(() => {
+    if (!active || !selectionMaskDataUrl) {
+      setSelectionMaskImage(null)
+      setSelectionMaskBounds(null)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const maskImage = await loadHtmlImage(selectionMaskDataUrl)
+        if (cancelled) return
+        setSelectionMaskImage(maskImage)
+
+        const canvas = document.createElement('canvas')
+        canvas.width = active.width
+        canvas.height = active.height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+        ctx.drawImage(maskImage, 0, 0, active.width, active.height)
+        const imageData = ctx.getImageData(0, 0, active.width, active.height)
+        const bounds = findNonZeroMaskBounds(imageData.data, active.width, active.height)
+        setSelectionMaskBounds(bounds)
+      } catch {
+        if (cancelled) return
+        setSelectionMaskImage(null)
+        setSelectionMaskBounds(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [active, selectionMaskDataUrl])
 
   useEffect(() => {
     if (tool === 'crop') return
@@ -3226,6 +3365,11 @@ function App() {
       if (key === 'b') {
         e.preventDefault()
         setTool('restore')
+        return
+      }
+      if (key === 's') {
+        e.preventDefault()
+        setTool('select')
         return
       }
       if (key === 'c') {
@@ -4271,6 +4415,13 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
       return
     }
 
+    if (tool === 'select') {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      void runSelectionAtPoint(xy.x, xy.y)
+      return
+    }
+
     if (tool === 'text') {
       const pointer = stage.getPointerPosition()
       let hitText: TextItem | null = null
@@ -4446,6 +4597,181 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     if (hadMovePan) startMoveMomentum()
     setBrushCursor((prev) => ({ ...prev, visible: false }))
     setDragMetrics(null)
+  }
+
+  async function runSelectionAtPoint(pointX: number, pointY: number) {
+    if (!active) return
+    setBusy(ui.selectionRunning)
+    setStatus(ui.selectionRunning)
+    runCancelableStart()
+    setProgressState({ label: ui.selectionRunning, value: 0, total: 1, indeterminate: true })
+    try {
+      const imageBlob = await dataUrlToBlob(active.baseDataUrl)
+      const maskBlob = await segmentPointViaApi({ image: imageBlob, pointX, pointY })
+      const maskImageUrl = await blobToDataUrl(maskBlob)
+      const maskImage = await loadHtmlImage(maskImageUrl)
+      const canvas = document.createElement('canvas')
+      canvas.width = active.width
+      canvas.height = active.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+      ctx.clearRect(0, 0, active.width, active.height)
+      ctx.drawImage(maskImage, 0, 0, active.width, active.height)
+      const normalizedMaskUrl = canvas.toDataURL('image/png')
+      const bounds = findNonZeroMaskBounds(ctx.getImageData(0, 0, active.width, active.height).data, active.width, active.height)
+      if (!bounds) throw new Error(ERR_SEGMENT_MASK_EMPTY)
+      setSelectionMaskDataUrl(normalizedMaskUrl)
+      setSelectionMaskBounds(bounds)
+      setStatus(ui.selectionDone)
+    } catch (e) {
+      const message = String(e instanceof Error ? e.message : e)
+      if (message.includes('ERR_SEGMENT')) {
+        setStatus(localizeErrorMessage(message))
+      } else if (message.includes(ERR_SEGMENT_MASK_EMPTY)) {
+        setStatus(ui.selectionMaskEmpty)
+      } else {
+        setStatus(localizeErrorMessage(message))
+      }
+    } finally {
+      setBusy(null)
+      setProgressState(null)
+      runCancelableEnd()
+    }
+  }
+
+  async function applySelectionAction(action: SelectionAction) {
+    if (!active || !selectionMaskDataUrl) {
+      setStatus(ui.selectionMaskEmpty)
+      return
+    }
+
+    if (action === 'replaceBackground' && !selectionBackgroundImageUrl) {
+      setStatus(ui.selectionPickBackgroundImage)
+      return
+    }
+
+    try {
+      const baseImage = await loadHtmlImage(active.baseDataUrl)
+      const maskImage = await loadHtmlImage(selectionMaskDataUrl)
+
+      const width = active.width
+      const height = active.height
+
+      const workCanvas = document.createElement('canvas')
+      workCanvas.width = width
+      workCanvas.height = height
+      const workCtx = workCanvas.getContext('2d')
+      if (!workCtx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+
+      workCtx.drawImage(baseImage, 0, 0, width, height)
+      const baseImageData = workCtx.getImageData(0, 0, width, height)
+
+      const maskCanvas = document.createElement('canvas')
+      maskCanvas.width = width
+      maskCanvas.height = height
+      const maskCtx = maskCanvas.getContext('2d')
+      if (!maskCtx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+      maskCtx.drawImage(maskImage, 0, 0, width, height)
+      const maskData = maskCtx.getImageData(0, 0, width, height).data
+
+      const bounds = findNonZeroMaskBounds(maskData, width, height)
+      if (!bounds) {
+        setStatus(ui.selectionMaskEmpty)
+        return
+      }
+
+      if (action === 'restoreSelection') {
+        const maskBlob = await renderMaskImageToBlob(selectionMaskDataUrl)
+        const imageBlob = await dataUrlToBlob(active.baseDataUrl)
+        const resultBlob = await inpaintViaApi({ image: imageBlob, mask: maskBlob })
+        const resultUrl = await blobToDataUrl(resultBlob)
+        updateAssetByIdWithHistory(active.id, 'AI restore selection', (a) => ({ ...a, baseDataUrl: resultUrl }))
+        setStatus(ui.done)
+        return
+      }
+
+      let replacementData: Uint8ClampedArray | null = null
+      if (action === 'replaceBackground' && selectionBackgroundImageUrl) {
+        const backgroundImage = await loadHtmlImage(selectionBackgroundImageUrl)
+        const bgCanvas = document.createElement('canvas')
+        bgCanvas.width = width
+        bgCanvas.height = height
+        const bgCtx = bgCanvas.getContext('2d')
+        if (!bgCtx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+        drawImageCover(bgCtx, backgroundImage, width, height)
+        replacementData = bgCtx.getImageData(0, 0, width, height).data
+      }
+
+      const [fillR, fillG, fillB] = resolveFillColorRgb(selectionFillColor)
+      const out = baseImageData.data
+      for (let i = 0; i < out.length; i += 4) {
+        const selected = (maskData[i] ?? 0) > 8
+        if (action === 'eraseSelection' && selected) {
+          out[i + 3] = 0
+          continue
+        }
+        if (action === 'transparentBackground' && !selected) {
+          out[i + 3] = 0
+          continue
+        }
+        if (action === 'fillBackground' && !selected) {
+          out[i] = fillR
+          out[i + 1] = fillG
+          out[i + 2] = fillB
+          out[i + 3] = 255
+          continue
+        }
+        if (action === 'replaceBackground' && !selected && replacementData) {
+          out[i] = replacementData[i] ?? out[i]
+          out[i + 1] = replacementData[i + 1] ?? out[i + 1]
+          out[i + 2] = replacementData[i + 2] ?? out[i + 2]
+          out[i + 3] = replacementData[i + 3] ?? 255
+        }
+      }
+
+      workCtx.putImageData(baseImageData, 0, 0)
+      const resultUrl = workCanvas.toDataURL('image/png')
+
+      const label = action === 'eraseSelection'
+        ? 'Delete selection'
+        : action === 'transparentBackground'
+          ? 'Transparent background'
+          : action === 'fillBackground'
+            ? 'Fill background'
+            : 'Replace background image'
+
+      updateAssetByIdWithHistory(active.id, label, (a) => ({ ...a, baseDataUrl: resultUrl }))
+      setStatus(ui.done)
+    } catch (e) {
+      setStatus(localizeErrorMessage(String(e instanceof Error ? e.message : e)))
+    }
+  }
+
+  async function onSelectionBackgroundImageChange(fileList: FileList | null) {
+    const file = fileList?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setStatus(ui.errImageLoadFailed)
+      return
+    }
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          if (typeof reader.result !== 'string') {
+            reject(new Error(ERR_DATA_URL_CONVERT_FAILED))
+            return
+          }
+          resolve(reader.result)
+        }
+        reader.onerror = () => reject(new Error(ERR_IMAGE_LOAD_FAILED))
+        reader.readAsDataURL(file)
+      })
+      setSelectionBackgroundImageUrl(dataUrl)
+      setStatus(ui.selectionBackgroundImageReady)
+    } catch (e) {
+      setStatus(localizeErrorMessage(String(e instanceof Error ? e.message : e)))
+    }
   }
 
   async function runInpaintForAsset(assetId: string, strokes: MaskStroke[], boundsOverride?: CropRect | null) {
@@ -6244,6 +6570,16 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 ✨
               </button>
               <button
+                className={`iconDockBtn ${tool === 'select' ? 'active' : ''}`}
+                title={ui.aiSelect}
+                aria-label={ui.aiSelect}
+                data-tip={ui.aiSelect}
+                data-key="S"
+                onClick={() => setTool('select')}
+              >
+                ◉
+              </button>
+              <button
                 className={`iconDockBtn ${tool === 'move' ? 'active' : ''}`}
                 title={ui.move}
                 aria-label={ui.move}
@@ -6308,7 +6644,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
               </button>
             </div>
           ) : null}
-          {active ? <div className="modeBadge">{tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : ui.modeEraser}</div> : null}
+          {active ? <div className="modeBadge">{tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : ui.modeEraser}</div> : null}
           {active ? (
             <div className={`canvasZoomDock ${cropDockClass}`} title={ui.zoomHintCtrlWheel}>
               <button className="iconDockBtn" onClick={() => zoomBy(-0.1)} title={ui.zoomOut} aria-label={ui.zoomOut}>－</button>
@@ -6749,6 +7085,17 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
               <Layer>
                 <Group x={fit.ox} y={fit.oy} scaleX={fit.scale} scaleY={fit.scale}>
+                  {tool === 'select' && selectionMaskImage ? (
+                    <KonvaImage
+                      image={selectionMaskImage}
+                      x={0}
+                      y={0}
+                      width={active.width}
+                      height={active.height}
+                      opacity={0.38}
+                      listening={false}
+                    />
+                  ) : null}
                   {active.maskStrokes.map((l) => (
                     <Line
                       key={l.id}
@@ -7048,6 +7395,42 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 </>
               ) : null}
 
+              {tool === 'select' ? (
+                <>
+                  <div className="hint">{ui.selectionToolHint}</div>
+                  <div className="hint">
+                    {ui.aiPreviewArea}: {selectionMaskBounds ? `${selectionMaskBounds.width} x ${selectionMaskBounds.height}` : '-'}
+                  </div>
+                  <div className="buttonRow">
+                    <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('eraseSelection')}>{ui.selectionActionErase}</button>
+                    <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('transparentBackground')}>{ui.selectionActionTransparentBg}</button>
+                  </div>
+                  <div className="label">{ui.selectionFillColor}</div>
+                  <div className="buttonRow">
+                    <label className="quickColor" title={ui.selectionFillColor} aria-label={ui.selectionFillColor}>
+                      <input type="color" value={selectionFillColor} onChange={(e) => setSelectionFillColor(e.target.value)} />
+                    </label>
+                    <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('fillBackground')}>{ui.selectionActionFillBg}</button>
+                  </div>
+                  <input
+                    ref={selectionBackgroundInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={(e) => void onSelectionBackgroundImageChange(e.target.files)}
+                  />
+                  <div className="buttonRow">
+                    <button className="btn" onClick={() => selectionBackgroundInputRef.current?.click()}>{ui.selectionPickBackgroundImage}</button>
+                    <button className="btn" disabled={!!busy || !selectionMaskDataUrl || !selectionBackgroundImageUrl} onClick={() => void applySelectionAction('replaceBackground')}>{ui.selectionActionReplaceBg}</button>
+                  </div>
+                  {selectionBackgroundImageUrl ? <div className="hint">{ui.selectionBackgroundImageReady}</div> : null}
+                  <div className="buttonRow">
+                    <button className="btn primary" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('restoreSelection')}>{ui.selectionActionRestore}</button>
+                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => { setSelectionMaskDataUrl(null); setSelectionMaskBounds(null); setSelectionBackgroundImageUrl(null); }}>{ui.selectionActionClear}</button>
+                  </div>
+                </>
+              ) : null}
+
               {(tool === 'restore' || tool === 'eraser') && pendingMaskAction && pendingMaskAction.assetId === active?.id && pendingMaskAction.tool === tool ? (
                 <div className="aiPreviewCard">
                   <div className="label">{ui.aiPreviewTitle}</div>
@@ -7208,7 +7591,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
             </div>
             ) : null}
 
-            {tool !== 'eraser' && tool !== 'restore' ? (
+            {tool !== 'eraser' && tool !== 'restore' && tool !== 'select' ? (
             <div className="row layerRow">
               <div className="label">{ui.textLayers}</div>
               {selectedTextIds.length > 0 ? (
@@ -7412,9 +7795,10 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           >
             {ui.textAddAtCursor}
           </button>
-          <button className="menuItem" onClick={() => { setTool('restore'); setCanvasMenu(null) }}>{ui.canvasMenuToolRestore}</button>
-          <button className="menuItem" onClick={() => { setTool('eraser'); setCanvasMenu(null) }}>{ui.canvasMenuToolEraser}</button>
-          <button className="menuItem" onClick={() => { setTool('text'); setCanvasMenu(null) }}>{ui.canvasMenuToolText}</button>
+              <button className="menuItem" onClick={() => { setTool('restore'); setCanvasMenu(null) }}>{ui.canvasMenuToolRestore}</button>
+              <button className="menuItem" onClick={() => { setTool('eraser'); setCanvasMenu(null) }}>{ui.canvasMenuToolEraser}</button>
+              <button className="menuItem" onClick={() => { setTool('select'); setCanvasMenu(null) }}>{ui.canvasMenuToolSelect}</button>
+              <button className="menuItem" onClick={() => { setTool('text'); setCanvasMenu(null) }}>{ui.canvasMenuToolText}</button>
           <button className="menuItem" onClick={() => { setTool('move'); setCanvasMenu(null) }}>{ui.canvasMenuToolMove}</button>
           <button className="menuItem" onClick={() => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }); setCanvasMenu(null) }}>{ui.canvasMenuZoomReset}</button>
         </div>

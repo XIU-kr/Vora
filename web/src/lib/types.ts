@@ -1,4 +1,4 @@
-export type Tool = 'restore' | 'eraser' | 'text' | 'crop' | 'move'
+export type Tool = 'restore' | 'eraser' | 'select' | 'text' | 'crop' | 'move'
 
 export type MaskStroke = {
   id: string
