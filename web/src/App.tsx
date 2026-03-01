@@ -1135,6 +1135,10 @@ const UI = {
     selectModeRect: '사각형',
     selectModeEllipse: '타원',
     selectModeLasso: '올가미',
+    shortcutZoomIn: '줌 인 (+)',
+    shortcutZoomOut: '줌 아웃 (-)',
+    shortcutZoomReset: '줌 초기화 (Ctrl+0)',
+    shortcutFitSelection: '선택 영역 맞춤 (F)',
     aiPreviewTitle: 'AI 실행 미리보기',
     aiPreviewConfirm: '선택 영역에 실행할까요?',
     aiPreviewArea: '대상 영역',
@@ -1582,6 +1586,10 @@ const UI = {
     selectModeRect: 'Rectangle',
     selectModeEllipse: 'Ellipse',
     selectModeLasso: 'Lasso',
+    shortcutZoomIn: 'Zoom in (+)',
+    shortcutZoomOut: 'Zoom out (-)',
+    shortcutZoomReset: 'Reset zoom (Ctrl+0)',
+    shortcutFitSelection: 'Fit to selection (F)',
     aiPreviewTitle: 'AI action preview',
     aiPreviewConfirm: 'Run on selected area?',
     aiPreviewArea: 'Target area',
@@ -2331,6 +2339,27 @@ function App() {
 
   function zoomBy(delta: number) {
     setCanvasZoom((prev) => clamp(Number((prev + delta).toFixed(2)), ZOOM_MIN, ZOOM_MAX))
+  }
+
+  function fitViewToRect(rect: CropRect) {
+    if (!active || !wrapSize.w || !wrapSize.h) return
+    const padding = 48
+    const cw = Math.max(1, wrapSize.w - padding * 2)
+    const ch = Math.max(1, wrapSize.h - padding * 2)
+    const scaleX = cw / Math.max(1, rect.width)
+    const scaleY = ch / Math.max(1, rect.height)
+    const targetScale = Math.min(scaleX, scaleY)
+    const basePadding = 24
+    const bcw = Math.max(1, wrapSize.w - basePadding * 2)
+    const bch = Math.max(1, wrapSize.h - basePadding * 2)
+    const baseScale = Math.min(bcw / active.width, bch / active.height)
+    const newCanvasZoom = clamp(targetScale / baseScale, ZOOM_MIN, ZOOM_MAX)
+    const centerX = rect.x + rect.width / 2
+    const centerY = rect.y + rect.height / 2
+    const newOffsetX = wrapSize.w / 2 - centerX * targetScale - (wrapSize.w - active.width * targetScale) / 2
+    const newOffsetY = wrapSize.h / 2 - centerY * targetScale - (wrapSize.h - active.height * targetScale) / 2
+    setCanvasZoom(newCanvasZoom)
+    setCanvasOffset({ x: newOffsetX, y: newOffsetY })
   }
 
   function zoomFromWheelAtClient(deltaY: number, clientX: number, clientY: number) {
@@ -3424,6 +3453,26 @@ function App() {
         duplicateSelectedTextLayers()
         return
       }
+      if ((key === '=' || key === '+') && tool !== 'crop') {
+        e.preventDefault()
+        zoomBy(0.1)
+        return
+      }
+      if (key === '-' && tool !== 'crop') {
+        e.preventDefault()
+        zoomBy(-0.1)
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && key === '0') {
+        e.preventDefault()
+        setZoom(1); setCanvasOffset({ x: 0, y: 0 })
+        return
+      }
+      if (key === 'f' && selectionMaskBounds) {
+        e.preventDefault()
+        fitViewToRect(selectionMaskBounds)
+        return
+      }
       if (key === 't') {
         e.preventDefault()
         setTool('text')
@@ -3472,7 +3521,7 @@ function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectedText, selectedTextIds, active, cropRect, cropPreviewDataUrl, tool, busy, selectedAssetIds.length, ui.selectionCleared, ui.cancelCrop, ui.textInsertArmed, exportDialogOpen, showShortcutsHelp])
+  }, [selectedText, selectedTextIds, active, cropRect, cropPreviewDataUrl, tool, busy, selectedAssetIds.length, ui.selectionCleared, ui.cancelCrop, ui.textInsertArmed, exportDialogOpen, showShortcutsHelp, selectionMaskBounds])
 
   useEffect(() => {
     return () => {
