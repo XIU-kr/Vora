@@ -130,7 +130,7 @@ def _load_sam_vit_predictor(model_name: str, device: str) -> dict[str, Any]:
         raise RuntimeError("PyTorch is required for SAM vit inference.")
 
     predictor_device = "cuda" if device == "cuda" and _cuda_available() else "cpu"
-    processor = SamProcessor.from_pretrained(model_name)
+    processor = SamProcessor.from_pretrained(model_name, use_fast=False)
     model = SamModel.from_pretrained(model_name).to(predictor_device)
     return {"model": model, "processor": processor, "device": predictor_device}
 

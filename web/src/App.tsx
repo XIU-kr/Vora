@@ -1105,6 +1105,7 @@ const UI = {
     restoreHint: '브러시로 칠하고 마우스를 떼면 즉시 AI 복원이 실행됩니다.',
     eraserHint: '브러시로 칠하면 주변 색을 즉시 채워 지웁니다.',
     selectionToolHint: '대상을 클릭하면 SAM으로 자동 분할 선택합니다.',
+    selectionToolHintHasSelection: '클릭하여 영역 추가, Alt+클릭으로 영역 빼기',
     selectionMaskEmpty: '선택 마스크가 없습니다',
     selectionRunning: 'AI 선택 실행 중…',
     selectionDone: '선택 마스크 생성 완료',
@@ -1534,6 +1535,7 @@ const UI = {
     restoreHint: 'Paint with brush and release mouse to run AI restore automatically.',
     eraserHint: 'Paint with brush to instantly fill using nearby colors.',
     selectionToolHint: 'Click a subject to create a SAM selection mask.',
+    selectionToolHintHasSelection: 'Click to add · Alt+click to subtract',
     selectionMaskEmpty: 'No selection mask',
     selectionRunning: 'Running AI selection…',
     selectionDone: 'Selection mask created',
@@ -1885,6 +1887,7 @@ function App() {
   const [selectionMaskDataUrl, setSelectionMaskDataUrl] = useState<string | null>(null)
   const [selectionMaskImage, setSelectionMaskImage] = useState<HTMLImageElement | null>(null)
   const [selectionMaskBounds, setSelectionMaskBounds] = useState<CropRect | null>(null)
+  const [antsDashOffset, setAntsDashOffset] = useState(0)
   const [selectionFillColor, setSelectionFillColor] = useState('#ffffff')
   const [selectionBackgroundImageUrl, setSelectionBackgroundImageUrl] = useState<string | null>(null)
   const [fontSearchQuery, setFontSearchQuery] = useState('')
@@ -3055,7 +3058,6 @@ function App() {
       try {
         const maskImage = await loadHtmlImage(selectionMaskDataUrl)
         if (cancelled) return
-        setSelectionMaskImage(maskImage)
 
         const canvas = document.createElement('canvas')
         canvas.width = active.width
@@ -3066,6 +3068,25 @@ function App() {
         const imageData = ctx.getImageData(0, 0, active.width, active.height)
         const bounds = findNonZeroMaskBounds(imageData.data, active.width, active.height)
         setSelectionMaskBounds(bounds)
+
+        // Recolor mask to blue overlay (dodger blue, alpha=160 for selected pixels)
+        const colored = ctx.createImageData(active.width, active.height)
+        for (let i = 0; i < imageData.data.length; i += 4) {
+          if ((imageData.data[i] ?? 0) > 8) {
+            colored.data[i] = 30; colored.data[i + 1] = 144; colored.data[i + 2] = 255; colored.data[i + 3] = 160
+          } else {
+            colored.data[i + 3] = 0
+          }
+        }
+        const displayCanvas = document.createElement('canvas')
+        displayCanvas.width = active.width
+        displayCanvas.height = active.height
+        const displayCtx = displayCanvas.getContext('2d')
+        if (!displayCtx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+        displayCtx.putImageData(colored, 0, 0)
+        const coloredImg = await loadHtmlImage(displayCanvas.toDataURL('image/png'))
+        if (cancelled) return
+        setSelectionMaskImage(coloredImg)
       } catch {
         if (cancelled) return
         setSelectionMaskImage(null)
@@ -3076,6 +3097,12 @@ function App() {
       cancelled = true
     }
   }, [active, selectionMaskDataUrl])
+
+  useEffect(() => {
+    if (tool !== 'select' || !selectionMaskBounds) { setAntsDashOffset(0); return }
+    const id = setInterval(() => setAntsDashOffset(d => (d + 1) % 16), 60)
+    return () => clearInterval(id)
+  }, [tool, !!selectionMaskBounds])
 
   useEffect(() => {
     if (tool === 'crop') return
@@ -4406,7 +4433,8 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     if (tool === 'select') {
       const xy = pointerToImageXY(stage)
       if (!xy) return
-      void runSelectionAtPoint(xy.x, xy.y)
+      const mode = e.evt.altKey ? 'subtract' : 'add'
+      void runSelectionAtPoint(xy.x, xy.y, mode)
       return
     }
 
@@ -4587,7 +4615,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     setDragMetrics(null)
   }
 
-  async function runSelectionAtPoint(pointX: number, pointY: number) {
+  async function runSelectionAtPoint(pointX: number, pointY: number, mode: 'add' | 'subtract' = 'add') {
     if (!active) return
     const requestStart = performance.now()
     if (import.meta.env.DEV) {
@@ -4597,6 +4625,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         activeId: active.id,
         imageWidth: active.width,
         imageHeight: active.height,
+        mode,
       })
     }
     setBusy(ui.selectionRunning)
@@ -4614,15 +4643,45 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
       const maskBlob = await segmentPointViaApi({ image: imageBlob, pointX, pointY })
       const maskImageUrl = await blobToDataUrl(maskBlob)
       const maskImage = await loadHtmlImage(maskImageUrl)
-      const canvas = document.createElement('canvas')
-      canvas.width = active.width
-      canvas.height = active.height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) throw new Error(ERR_CANVAS_UNAVAILABLE)
-      ctx.clearRect(0, 0, active.width, active.height)
-      ctx.drawImage(maskImage, 0, 0, active.width, active.height)
-      const normalizedMaskUrl = canvas.toDataURL('image/png')
-      const bounds = findNonZeroMaskBounds(ctx.getImageData(0, 0, active.width, active.height).data, active.width, active.height)
+
+      // Load existing mask pixels if present
+      let existingData: Uint8ClampedArray | null = null
+      if (selectionMaskDataUrl) {
+        const tmpCanvas = document.createElement('canvas')
+        tmpCanvas.width = active.width; tmpCanvas.height = active.height
+        const tmpCtx = tmpCanvas.getContext('2d')
+        if (tmpCtx) {
+          const existingImg = await loadHtmlImage(selectionMaskDataUrl)
+          tmpCtx.drawImage(existingImg, 0, 0, active.width, active.height)
+          existingData = tmpCtx.getImageData(0, 0, active.width, active.height).data
+        }
+      }
+
+      // Load new mask pixels
+      const newCanvas = document.createElement('canvas')
+      newCanvas.width = active.width; newCanvas.height = active.height
+      const newCtx = newCanvas.getContext('2d')
+      if (!newCtx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+      newCtx.drawImage(maskImage, 0, 0, active.width, active.height)
+      const newData = newCtx.getImageData(0, 0, active.width, active.height).data
+
+      // Combine masks
+      const outCanvas = document.createElement('canvas')
+      outCanvas.width = active.width; outCanvas.height = active.height
+      const outCtx = outCanvas.getContext('2d')
+      if (!outCtx) throw new Error(ERR_CANVAS_UNAVAILABLE)
+      const outImg = outCtx.createImageData(active.width, active.height)
+      for (let i = 0; i < newData.length; i += 4) {
+        const ex = existingData ? (existingData[i] ?? 0) : 0
+        const nv = newData[i] ?? 0
+        const result = mode === 'subtract' ? (nv > 8 ? 0 : ex) : Math.max(ex, nv)
+        outImg.data[i] = outImg.data[i + 1] = outImg.data[i + 2] = result
+        outImg.data[i + 3] = 255
+      }
+      outCtx.putImageData(outImg, 0, 0)
+      const normalizedMaskUrl = outCanvas.toDataURL('image/png')
+
+      const bounds = findNonZeroMaskBounds(outImg.data, active.width, active.height)
       if (!bounds) throw new Error(ERR_SEGMENT_MASK_EMPTY)
       setSelectionMaskDataUrl(normalizedMaskUrl)
       setSelectionMaskBounds(bounds)
@@ -6982,10 +7041,38 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                       y={0}
                       width={active.width}
                       height={active.height}
-                      opacity={0.38}
+                      opacity={1}
                       listening={false}
                     />
                   ) : null}
+                  {tool === 'select' && selectionMaskBounds && (
+                    <>
+                      <Rect
+                        stroke="white"
+                        strokeWidth={1.5 / fit.scale}
+                        dash={[5 / fit.scale, 5 / fit.scale]}
+                        dashOffset={-antsDashOffset / fit.scale}
+                        x={selectionMaskBounds.x}
+                        y={selectionMaskBounds.y}
+                        width={selectionMaskBounds.width}
+                        height={selectionMaskBounds.height}
+                        listening={false}
+                        perfectDrawEnabled={false}
+                      />
+                      <Rect
+                        stroke="black"
+                        strokeWidth={1.5 / fit.scale}
+                        dash={[5 / fit.scale, 5 / fit.scale]}
+                        dashOffset={(-antsDashOffset + 8) / fit.scale}
+                        x={selectionMaskBounds.x}
+                        y={selectionMaskBounds.y}
+                        width={selectionMaskBounds.width}
+                        height={selectionMaskBounds.height}
+                        listening={false}
+                        perfectDrawEnabled={false}
+                      />
+                    </>
+                  )}
                   {active.maskStrokes.map((l) => (
                     <Line
                       key={l.id}
@@ -7287,7 +7374,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
               {tool === 'select' ? (
                 <>
-                  <div className="hint">{ui.selectionToolHint}</div>
+                  <div className="hint">{selectionMaskDataUrl ? ui.selectionToolHintHasSelection : ui.selectionToolHint}</div>
                   <div className="hint">
                     {ui.aiPreviewArea}: {selectionMaskBounds ? `${selectionMaskBounds.width} x ${selectionMaskBounds.height}` : '-'}
                   </div>
@@ -7316,7 +7403,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   {selectionBackgroundImageUrl ? <div className="hint">{ui.selectionBackgroundImageReady}</div> : null}
                   <div className="buttonRow">
                     <button className="btn primary" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('restoreSelection')}>{ui.selectionActionRestore}</button>
-                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => { setSelectionMaskDataUrl(null); setSelectionMaskBounds(null); setSelectionBackgroundImageUrl(null); }}>{ui.selectionActionClear}</button>
+                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => { setSelectionMaskDataUrl(null); setSelectionMaskBounds(null); setSelectionBackgroundImageUrl(null); setAntsDashOffset(0); }}>{ui.selectionActionClear}</button>
                   </div>
                 </>
               ) : null}
