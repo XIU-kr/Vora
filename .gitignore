@@ -1,0 +1,25 @@
+.DS_Store
+
+# Node
+/node_modules/
+web/node_modules/
+web/dist/
+web/.vite/
+server/node_modules/
+server/dist/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local env
+.env
+
+# OS
+Thumbs.db
+NUL
+
+# Local scratch artifacts
+sample.pdf

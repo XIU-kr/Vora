@@ -1,0 +1,10 @@
+services:
+  vora:
+    build: .
+    ports:
+      - "18743:18743"
+    environment:
+      - LAMIVI_DEVICE=auto
+      - LAMIVI_PYTHON=/opt/venv-lama/bin/python
+      - LAMIVI_WORKER_TIMEOUT_MS=600000
+      - LAMIVI_BOOT_TIMEOUT_MS=120000

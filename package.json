@@ -1,0 +1,17 @@
+{
+  "name": "vora-root",
+  "description": "Web-based AI image editing engine built for smart visual editing.",
+  "author": "XIU-kr",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiu-kr/vora.git"
+  },
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n server,web -c cyan,magenta \"npm --prefix server run dev\" \"npm --prefix web run dev\"",
+    "build": "npm --prefix server run build && npm --prefix web run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

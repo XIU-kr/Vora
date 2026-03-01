@@ -1,0 +1,18 @@
+services:
+  vora:
+    image: vora:local
+    gpus: all
+    ports:
+      - "18743:18743"
+    environment:
+      - LAMIVI_DEVICE=auto
+      - LAMIVI_PYTHON=/opt/venv-lama/bin/python
+      - LAMIVI_WORKER_TIMEOUT_MS=600000
+      - LAMIVI_BOOT_TIMEOUT_MS=120000
+    volumes:
+      - vora_torch_cache:/root/.cache/torch
+      - vora_lama_cache:/root/.cache/lama
+
+volumes:
+  vora_torch_cache:
+  vora_lama_cache:
