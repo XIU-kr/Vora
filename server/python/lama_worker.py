@@ -256,9 +256,12 @@ def _run_segment_point_sam_vit(image: Image.Image, point_x: int, point_y: int) -
     if best_idx >= masks_np.shape[0]:
         best_idx = 0
     best_mask = masks_np[best_idx]
-    # post_process_masks returns shape (num_masks, 1, H, W); squeeze channel dim
-    if best_mask.ndim == 3 and best_mask.shape[0] == 1:
+    # post_process_masks output shape varies by transformers version:
+    # (num_masks, 1, H, W) or (1, H, W) after indexing — squeeze all leading size-1 dims
+    while best_mask.ndim > 2 and best_mask.shape[0] == 1:
         best_mask = best_mask[0]
+    if best_mask.ndim != 2:
+        raise RuntimeError(f"Unexpected SAM vit mask shape after squeeze: {best_mask.shape}")
     mask_u8 = ((best_mask > 0).astype(np.uint8) * 255)
     return Image.fromarray(mask_u8, mode="L")
 
