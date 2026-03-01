@@ -48,7 +48,7 @@ docker run --rm -p 18743:18743 xiukr/vora:latest
 docker run --rm --gpus all -p 18743:18743 \
   -e VORA_DEVICE=auto \
   -e VORA_SAM_MODEL=vit_l \
-  -e VORA_LAMA_FP16=1 \
+  -e VORA_LAMA_FP16=0 \
   -e VORA_WORKER_TIMEOUT_MS=600000 \
   -e VORA_BOOT_TIMEOUT_MS=600000 \
   xiukr/vora:latest
@@ -56,7 +56,7 @@ docker run --rm --gpus all -p 18743:18743 \
 
 - `VORA_DEVICE=auto|cpu|cuda`
 - `VORA_SAM_MODEL`: `vit_l` (default), `vit_b`, `vit_h`, or SAM2 model id (example: `facebook/sam2.1-hiera-large`)
-- `VORA_LAMA_FP16`: Big-LaMa fp16 mode on CUDA (`1` default, `0` to disable)
+- `VORA_LAMA_FP16`: Big-LaMa fp16 mode on CUDA (`0` default for stability, `1` to enable)
 - `VORA_WORKER_TIMEOUT_MS`: worker request timeout
 - `VORA_BOOT_TIMEOUT_MS`: worker startup timeout
 

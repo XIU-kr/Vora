@@ -1,3 +1,15 @@
+const API_REQUEST_TIMEOUT_MS = 95_000
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs = API_REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController()
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(input, { ...init, signal: controller.signal })
+  } finally {
+    window.clearTimeout(timer)
+  }
+}
+
 export async function inpaintViaApi(opts: {
   image: Blob
   mask: Blob
@@ -6,10 +18,18 @@ export async function inpaintViaApi(opts: {
   body.append('image', opts.image, 'image.png')
   body.append('mask', opts.mask, 'mask.png')
 
-  const res = await fetch('/api/inpaint', {
-    method: 'POST',
-    body,
-  })
+  let res: Response
+  try {
+    res = await fetchWithTimeout('/api/inpaint', {
+      method: 'POST',
+      body,
+    })
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('ERR_INPAINT_HTTP:524:Request timeout while waiting for /api/inpaint. Check backend worker/container readiness.')
+    }
+    throw e
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
@@ -40,10 +60,18 @@ export async function segmentPointViaApi(opts: {
   body.append('pointX', String(Math.round(opts.pointX)))
   body.append('pointY', String(Math.round(opts.pointY)))
 
-  const res = await fetch('/api/segment-point', {
-    method: 'POST',
-    body,
-  })
+  let res: Response
+  try {
+    res = await fetchWithTimeout('/api/segment-point', {
+      method: 'POST',
+      body,
+    })
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('ERR_SEGMENT_HTTP:524:Request timeout while waiting for /api/segment-point. Check backend worker/container readiness.')
+    }
+    throw e
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
