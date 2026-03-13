@@ -479,7 +479,7 @@
   padding: 8px 4px;
   background: var(--bg-toolbar);
   border-right: 1px solid var(--stroke);
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .toolbarLeft .toolBtn {
