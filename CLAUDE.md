@@ -30,6 +30,9 @@ npm --prefix server run build # tsc compile → server/dist/
 npm --prefix web run dev      # Vite HMR
 npm --prefix web run build    # → web/dist/
 
+# Lint (frontend only, ESLint)
+npm --prefix web run lint
+
 # Health check (also triggers Python worker init)
 curl http://localhost:18743/api/health
 
@@ -40,14 +43,17 @@ docker run --rm --gpus all -p 18743:18743 xiukr/vora:latest
 docker-compose -f docker-compose.dev.yml up
 ```
 
-There are no automated tests in this codebase.
+There are no automated tests in this codebase. CI (`.github/workflows/ci.yml`) runs `npm ci && npm run build` for both `web/` and `server/` on every push and PR.
 
 ## Architecture
 
 ### Frontend (`web/src/`)
-- `App.tsx` — monolithic main component (~9000 lines). Contains all canvas state, tool logic, undo/history, layer management, and UI. Read this file carefully before modifying any editor behavior.
-- `lib/api.ts` — HTTP client for `POST /api/inpaint` and `POST /api/segment-point`. Uses `AbortController` with configurable timeout.
+- `App.tsx` — monolithic main component (~8500 lines). Contains all canvas state, tool logic, undo/history, layer management, and UI. Read this file carefully before modifying any editor behavior.
+- `lib/api.ts` — HTTP client for `POST /api/inpaint` and `POST /api/segment-point`. Uses `AbortController` with 95s timeout.
 - `lib/types.ts` — all shared TypeScript types: `Tool`, `MaskStroke`, `TextItem`, `LayerGroup`, `PageAsset`, `HistoryEntry`.
+- `lib/importers.ts` — file import logic (images and PDF pages via `pdfjs-dist`).
+- `lib/download.ts` — blob download helper.
+- Notable client-side libraries: `konva`/`react-konva` (canvas), `jspdf` (PDF export), `pptxgenjs` (PPTX export), `tesseract.js` (OCR), `pdfjs-dist` (PDF import), `@fortawesome` (icons).
 
 ### Server (`server/src/index.ts`)
 - `LamaWorkerClient` class spawns `lama_worker.py` as a subprocess and communicates via JSON lines over stdin/stdout.

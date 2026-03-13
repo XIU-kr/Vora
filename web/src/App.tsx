@@ -8,8 +8,6 @@ import {
   faEraser,
   faFont,
   faMagnifyingGlass,
-  faMagnifyingGlassMinus,
-  faMagnifyingGlassPlus,
   faObjectGroup,
   faPlus,
   faRotateLeft,
@@ -80,6 +78,7 @@ type NormalizedStroke = {
 
 type UiDensity = 'default' | 'compact'
 type SettingsTab = 'general' | 'editing' | 'info'
+type RightPanelTab = 'properties' | 'layers' | 'history'
 type TooltipDensity = 'simple' | 'detailed'
 type AnimationStrength = 'low' | 'default' | 'high'
 type TextSnapStrength = 'off' | 'soft' | 'normal' | 'strong'
@@ -1951,7 +1950,8 @@ function App() {
   const [featherRadius, setFeatherRadius] = useState(5)
   const [selectMode, setSelectMode] = useState<'ai' | 'rect' | 'ellipse' | 'lasso'>('ai')
   const [showGrid, setShowGrid] = useState(false)
-  const [gridSpacing, setGridSpacing] = useState(100)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [gridSpacing, _setGridSpacing] = useState(100)
   const marqueeStartRef = useRef<{ x: number; y: number } | null>(null)
   const [marqueeRect, setMarqueeRect] = useState<CropRect | null>(null)
   const [lassoPoints, setLassoPoints] = useState<number[]>([])
@@ -1962,6 +1962,13 @@ function App() {
   const [selectionFillColor, setSelectionFillColor] = useState('#ffffff')
   const [selectionBackgroundImageUrl, setSelectionBackgroundImageUrl] = useState<string | null>(null)
   const [fontSearchQuery, setFontSearchQuery] = useState('')
+  const [accordionState, setAccordionState] = useState<Record<string, boolean>>({
+    files: true,
+    properties: true,
+    layers: true,
+    history: false,
+  })
+  const toggleAccordion = (key: string) => setAccordionState((prev) => ({ ...prev, [key]: !prev[key] }))
   const active = useMemo(() => assets.find((a) => a.id === activeId) ?? null, [assets, activeId])
 
   useEffect(() => {
@@ -2101,6 +2108,10 @@ function App() {
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_rightPanelTab, _setRightPanelTab] = useState<RightPanelTab>('properties')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_filesCollapsed, _setFilesCollapsed] = useState(false)
   const [showMobileQuickActions, setShowMobileQuickActions] = useState<boolean>(() => {
     try {
       return window.localStorage.getItem('vora-mobile-quick-actions') !== '0'
@@ -5804,7 +5815,6 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         : 'default'
   const normalizedRestoreDevice = aiDevice.toLowerCase()
   const restoreDeviceLabel = normalizedRestoreDevice.includes('cuda') || normalizedRestoreDevice.includes('gpu') ? 'GPU' : normalizedRestoreDevice.includes('cpu') ? 'CPU' : 'AUTO'
-  const requestedDeviceLabel = aiRequestedDevice === 'cuda' ? 'GPU' : aiRequestedDevice === 'cpu' ? 'CPU' : 'AUTO'
   const aiStatusText = aiReady ? ui.aiReady : ui.aiInit
   const gpuSelectable = cudaAvailable !== false
   const selectedEngine = aiRequestedDevice === 'cuda' ? 'GPU' : 'CPU'
@@ -6450,21 +6460,19 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
   }
 
   return (
-    <div className={`app ${uiDensity === 'compact' ? 'densityCompact' : ''} ${showShortcutTips ? '' : 'shortcutsOff'} ${tooltipDensity === 'detailed' ? 'tooltipDetailed' : 'tooltipSimple'} ${tooltipsMuted ? 'tooltipsMuted' : ''} ${animationStrength === 'low' ? 'animLow' : animationStrength === 'high' ? 'animHigh' : ''}`} onDragOver={onDragOverRoot} onDragLeave={onDragLeaveRoot} onDrop={onDropRoot}>
-      <div className="topbar">
-        <div className="brand">
-          <h1>Vora AI</h1>
-        </div>
-
-        <div className="rightControls">
+    <div className={`app ${uiDensity === 'compact' ? 'densityCompact' : ''} ${showShortcutTips ? '' : 'shortcutsOff'} ${tooltipDensity === 'detailed' ? 'tooltipDetailed' : 'tooltipSimple'} ${tooltipsMuted ? 'tooltipsMuted' : ''} ${animationStrength === 'low' ? 'animLow' : animationStrength === 'high' ? 'animHigh' : ''} ${assets.length === 0 ? 'noSidebar' : ''}`} onDragOver={onDragOverRoot} onDragLeave={onDragLeaveRoot} onDrop={onDropRoot}>
+      {/* ═══ Header Bar ═══ */}
+      <div className="headerBar">
+        <div className="headerLeft">
+          <div className="brand">
+            <h1>Vora</h1>
+          </div>
           <div className={`deviceBadge ${aiError ? 'error' : aiReady ? 'ready' : 'init'} ${selectedAvailable ? 'available' : 'unavailable'} ${restoreDeviceLabel === 'GPU' ? 'gpu' : 'cpu'}`}>
             <span className="deviceDot" />
-            <span>{ui.aiRestoreEngine}</span>
             <span className="deviceEngineTag">{restoreDeviceLabel}</span>
             <span className={`deviceAvailability ${aiReady ? 'ok' : 'bad'}`}>
               {aiStatusText}
             </span>
-            <span className="deviceDetailText">{ui.aiRuntimeDetail(restoreDeviceLabel, requestedDeviceLabel, selectedAssetIds.length)}</span>
           </div>
           {hasUnsavedChanges ? (
             <button
@@ -6482,42 +6490,22 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
               {dirtyChangeCount > 0 ? ui.unsavedBadgeCount(dirtyChangeCount) : ui.unsavedBadge}
             </button>
           ) : null}
-
-          <button className="activityBtn" onClick={() => setShowActivityLog((prev) => !prev)}>
-            <span
-              onTouchStart={() => beginLongPressHint(showActivityLog ? ui.activityHide : ui.activityShow)}
-              onTouchEnd={cancelLongPressHint}
-              onTouchCancel={cancelLongPressHint}
-            >
-            <span className="ctrlIcon" aria-hidden="true">🧾</span>
-            <span className="ctrlLabel">{showActivityLog ? ui.activityHide : ui.activityShow}</span>
-            </span>
+        </div>
+        <div className="headerRight">
+          <button className="headerIconBtn" onClick={() => setShowActivityLog((prev) => !prev)} title={showActivityLog ? ui.activityHide : ui.activityShow} aria-label={showActivityLog ? ui.activityHide : ui.activityShow}>
+            🧾
           </button>
-
-          <button className="activityBtn" onClick={() => setShowShortcutsHelp((prev) => !prev)} title={ui.shortcutsToggleHint}>
-            <span
-              onTouchStart={() => beginLongPressHint(ui.shortcutsHelp)}
-              onTouchEnd={cancelLongPressHint}
-              onTouchCancel={cancelLongPressHint}
-            >
-            <span className="ctrlIcon" aria-hidden="true">⌨</span>
-            <span className="ctrlLabel">{ui.shortcutsHelp}</span>
-            </span>
+          <button className="headerIconBtn" onClick={() => setShowShortcutsHelp((prev) => !prev)} title={ui.shortcutsToggleHint} aria-label={ui.shortcutsHelp}>
+            ⌨
           </button>
-
-          <div className="settingsWrap">
-            <button
-              className="settingsBtn"
-              onClick={() => (settingsOpen ? closeSettings() : openSettings())}
-              onTouchStart={() => beginLongPressHint(ui.settings)}
-              onTouchEnd={cancelLongPressHint}
-              onTouchCancel={cancelLongPressHint}
-              aria-label={ui.settings}
-              title={ui.settings}
-            >
-              ⚙
-            </button>
-          </div>
+          <button
+            className="headerIconBtn"
+            onClick={() => (settingsOpen ? closeSettings() : openSettings())}
+            aria-label={ui.settings}
+            title={ui.settings}
+          >
+            ⚙
+          </button>
         </div>
       </div>
       {showMobileQuickActions ? (
@@ -6550,6 +6538,86 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           ))}
         </div>
       ) : null}
+
+      {/* ═══ Options Bar ═══ */}
+      <div className="optionsBar">
+        <div className="optionsGroup">
+          <label className="btn ghost">
+            {ui.import}
+            <input
+              type="file"
+              multiple
+              accept="image/*,application/pdf,.pdf"
+              onChange={(e) => void handleFiles(e.target.files)}
+              style={{ display: 'none' }}
+            />
+          </label>
+          <button className="btn ghost" onClick={() => {
+            if (!hasSelectedAssets && pendingExportScope === 'selected') {
+              setPendingExportScope('current')
+            }
+            setExportDialogOpen(true)
+          }} disabled={assets.length === 0 || !!busy}>{ui.exportNow}</button>
+        </div>
+        <div className="optionsDivider" />
+        {active ? (
+          <span className="optionsModeTag">
+            {tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : ui.modeEraser}
+          </span>
+        ) : null}
+        {active && (tool === 'restore' || tool === 'eraser') ? (
+          <div className="optionsGroup optionsBrushRow">
+            <span className="optionsLabel">{ui.brushSize}</span>
+            <input
+              className="input smoothRange"
+              type="range"
+              min={0}
+              max={BRUSH_SLIDER_MAX}
+              step={1}
+              value={brushSliderValue}
+              onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))}
+            />
+            <input
+              className="input optionsBrushInput"
+              type="number"
+              min={BRUSH_MIN}
+              max={BRUSH_MAX}
+              value={brushSize}
+              onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))}
+            />
+            <span className="optionsLabel">{brushSize}px</span>
+          </div>
+        ) : null}
+        {active && tool === 'select' ? (
+          <div className="optionsGroup">
+            <button className={`btn ghost ${selectMode === 'ai' ? 'active' : ''}`} onClick={() => setSelectMode('ai')}>{ui.selectModeAI}</button>
+            <button className={`btn ghost ${selectMode === 'rect' ? 'active' : ''}`} onClick={() => setSelectMode('rect')}>{ui.selectModeRect}</button>
+            <button className={`btn ghost ${selectMode === 'ellipse' ? 'active' : ''}`} onClick={() => setSelectMode('ellipse')}>{ui.selectModeEllipse}</button>
+            <button className={`btn ghost ${selectMode === 'lasso' ? 'active' : ''}`} onClick={() => setSelectMode('lasso')}>{ui.selectModeLasso}</button>
+            <div className="optionsDivider" />
+            <button className="btn ghost primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
+          </div>
+        ) : null}
+        {active && tool === 'move' ? (
+          <div className="optionsGroup">
+            <button className="btn ghost" disabled={!!busy} onClick={() => void rotateImage(90)}>↻ 90°</button>
+            <button className="btn ghost" disabled={!!busy} onClick={() => void rotateImage(270)}>↺ 90°</button>
+            <button className="btn ghost" disabled={!!busy} onClick={() => void flipImage('h')}>{ui.flipH}</button>
+            <button className="btn ghost" disabled={!!busy} onClick={() => void flipImage('v')}>{ui.flipV}</button>
+          </div>
+        ) : null}
+        {active && tool === 'crop' ? (
+          <div className="optionsGroup">
+            <button className={`btn ghost ${cropPreset === 'free' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('free')}>{ui.cropPresetFree}</button>
+            <button className={`btn ghost ${cropPreset === '1:1' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('1:1')}>{ui.cropPresetSquare}</button>
+            <button className={`btn ghost ${cropPreset === '4:3' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('4:3')}>{ui.cropPresetFourThree}</button>
+            <button className={`btn ghost ${cropPreset === '16:9' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('16:9')}>{ui.cropPresetSixteenNine}</button>
+            <div className="optionsDivider" />
+            <button className="btn ghost primary" disabled={!active || !activeCropRect || !!busy} onClick={() => void applyCrop()}>{ui.applyCrop}</button>
+            <button className="btn ghost" disabled={!activeCropRect} onClick={() => clearCropSelection(ui.cancelCrop)}>{ui.cancelCrop}</button>
+          </div>
+        ) : null}
+      </div>
 
       {pendingAutoRestore ? (
         <div className="restorePrompt" role="dialog" aria-modal="true">
@@ -6876,230 +6944,43 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         </div>
       ) : null}
 
-      <div className={`main ${assets.length === 0 ? 'emptyWorkbench' : ''}`}>
-        <div className={`panel ${guideFocusTarget === 'files' ? 'guideFlash' : ''}`}>
-            <div className="panelHeader">
-            <div className="title">{ui.files}</div>
-          </div>
-          <div className="panelBody">
-            <div className="assetList">
-              {assets.length === 0 ? (
-                <div className="hint">
-                  {ui.emptyFiles}
-                </div>
-              ) : null}
-              {assets.map((a) => (
-                <div
-                  key={a.id}
-                  ref={(node) => {
-                    assetCardRefs.current[a.id] = node
-                  }}
-                  className={`asset ${a.id === activeId ? 'active' : ''} ${selectedAssetIds.includes(a.id) ? 'selected' : ''} ${a.id === flashAssetId ? 'flash' : ''} ${a.id === dragAssetId ? 'dragging' : ''} ${a.id === dragOverAssetId && a.id !== dragAssetId ? 'dropTarget' : ''}`}
-                  onClick={(e) => onAssetCardClick(e, a.id)}
-                  draggable
-                  onDragStart={(e) => onAssetDragStart(e, a.id)}
-                  onDragEnter={(e) => onAssetDragEnter(e, a.id)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => onAssetDrop(e, a.id)}
-                  onDragEnd={() => {
-                    setDragAssetId(null)
-                    setDragOverAssetId(null)
-                  }}
-                >
-                  <img className="thumb" src={a.baseDataUrl} alt={a.name} loading="lazy" decoding="async" />
-                  <div className="assetMeta">
-                    <div className="assetTopRow">
-                      <div className="assetName">
-                        {a.name}
-                        {selectedAssetIds.includes(a.id) ? (
-                          <span className="assetOrderBadge">{selectedAssetIds.indexOf(a.id) + 1}</span>
-                        ) : null}
-                      </div>
-                      <button
-                        className="assetRemoveBtn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          removeAsset(a.id)
-                        }}
-                        title={ui.removeAsset}
-                        aria-label={ui.removeAsset}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="assetSub">
-                      {ui.assetMeta(a.width, a.height, a.texts.length)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="panelFooter centerActions">
-            <button className="btn" onClick={() => setSelectedAssetIds(assets.map((a) => a.id))} disabled={assets.length === 0}>
-              {ui.selectAllFiles}
-            </button>
-            <button className="btn" onClick={() => setSelectedAssetIds([])} disabled={selectedAssetIds.length === 0}>
-              {ui.unselectAllFiles}
-            </button>
-            <button className="btn" onClick={invertAssetSelection} disabled={assets.length === 0}>
-              {ui.invertSelection}
-            </button>
-            <label className="btn">
-              {ui.import}
-              <input
-                type="file"
-                multiple
-                accept="image/*,application/pdf,.pdf"
-                onChange={(e) => void handleFiles(e.target.files)}
-                style={{ display: 'none' }}
-              />
-            </label>
-            <button className="btn danger" onClick={clearAllAssets} disabled={assets.length === 0 || !!busy}>
-              {ui.clearAllAssets}
-            </button>
-            <div className="footerHint">
-              {ui.reorderHint} · {ui.selectionHint}
-              {selectedAssetIds.length > 0 ? (
-                <button
-                  className="selectionCountBadge"
-                  onClick={() => scrollToAsset(selectedAssetIds[0]!)}
-                  title={ui.selectionHint}
-                >
-                  {ui.selectedFilesCount(selectedAssetIds.length)}
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </div>
+      {/* ═══ Left Toolbar ═══ */}
+      <div className={`toolbarLeft ${guideFocusTarget === 'tools' ? 'guideFlash' : ''}`}>
+        <button className={`toolBtn ${tool === 'restore' ? 'active' : ''}`} title={ui.aiRestore} aria-label={ui.aiRestore} data-tip={ui.aiRestore} data-key="B" onClick={() => setTool('restore')} disabled={!active}>
+          <FontAwesomeIcon icon={faWandMagicSparkles} />
+        </button>
+        <button className={`toolBtn ${tool === 'select' ? 'active' : ''}`} title={ui.aiSelect} aria-label={ui.aiSelect} data-tip={ui.aiSelect} data-key="S" onClick={() => setTool('select')} disabled={!active}>
+          <FontAwesomeIcon icon={faObjectGroup} />
+        </button>
+        <button className={`toolBtn ${tool === 'move' ? 'active' : ''}`} title={ui.move} aria-label={ui.move} data-tip={ui.move} data-key="M" onClick={() => setTool('move')} disabled={!active}>
+          <FontAwesomeIcon icon={faArrowsUpDownLeftRight} />
+        </button>
+        <button className={`toolBtn ${tool === 'eraser' ? 'active' : ''}`} title={ui.aiEraser} aria-label={ui.aiEraser} data-tip={ui.aiEraser} data-key="E" onClick={() => setTool('eraser')} disabled={!active}>
+          <FontAwesomeIcon icon={faEraser} />
+        </button>
+        <div className="toolbarSep" />
+        <button className={`toolBtn ${tool === 'text' ? 'active' : ''}`} title={ui.textSelectMode} aria-label={ui.textSelectMode} data-tip={ui.textSelectMode} data-key="T" onClick={() => setTool('text')} disabled={!active}>
+          <FontAwesomeIcon icon={faFont} />
+        </button>
+        {tool === 'text' && active ? (
+          <button className="toolBtn" title={ui.addTextLayer} aria-label={ui.addTextLayer} data-tip={ui.addTextLayer} onClick={addTextFromMenu}>
+            <FontAwesomeIcon icon={faPlus} />
+          </button>
+        ) : null}
+        <button className={`toolBtn ${tool === 'crop' ? 'active' : ''}`} title={ui.crop} aria-label={ui.crop} data-tip={ui.crop} data-key="C" onClick={() => setTool('crop')} disabled={!active}>
+          <FontAwesomeIcon icon={faCropSimple} />
+        </button>
+        <div className="toolbarSep" />
+        <button className="toolBtn" title={ui.zoomReset} aria-label={ui.zoomReset} data-tip={ui.zoomReset} onClick={() => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) }} disabled={!active}>
+          <FontAwesomeIcon icon={faMagnifyingGlass} />
+        </button>
+      </div>
 
-        <div
-          className={`canvasWrap ${tool === 'text' ? 'textMode' : ''} ${tool === 'crop' ? 'cropMode' : ''} ${tool === 'move' ? 'moveMode' : ''} ${guideFocusTarget === 'canvas' ? 'guideFlash' : ''}`}
-          ref={wrapRef}
-        >
-          {active ? (
-            <div className={`leftDock ${guideFocusTarget === 'tools' ? 'guideFlash' : ''}`}>
-              <button
-                className={`iconDockBtn ${tool === 'restore' ? 'active' : ''}`}
-                title={ui.aiRestore}
-                aria-label={ui.aiRestore}
-                data-tip={ui.aiRestore}
-                data-key="B"
-                onClick={() => setTool('restore')}
-              >
-                <FontAwesomeIcon icon={faWandMagicSparkles} />
-              </button>
-              <button
-                className={`iconDockBtn ${tool === 'select' ? 'active' : ''}`}
-                title={ui.aiSelect}
-                aria-label={ui.aiSelect}
-                data-tip={ui.aiSelect}
-                data-key="S"
-                onClick={() => setTool('select')}
-              >
-                <FontAwesomeIcon icon={faObjectGroup} />
-              </button>
-              <button
-                className={`iconDockBtn ${tool === 'move' ? 'active' : ''}`}
-                title={ui.move}
-                aria-label={ui.move}
-                data-tip={ui.move}
-                data-key="M"
-                onClick={() => setTool('move')}
-              >
-                <FontAwesomeIcon icon={faArrowsUpDownLeftRight} />
-              </button>
-              <button
-                className={`iconDockBtn ${tool === 'eraser' ? 'active' : ''}`}
-                title={ui.aiEraser}
-                aria-label={ui.aiEraser}
-                data-tip={ui.aiEraser}
-                data-key="E"
-                onClick={() => setTool('eraser')}
-              >
-                <FontAwesomeIcon icon={faEraser} />
-              </button>
-              <button
-                className={`iconDockBtn ${tool === 'text' ? 'active' : ''}`}
-                title={ui.textSelectMode}
-                aria-label={ui.textSelectMode}
-                data-tip={ui.textSelectMode}
-                data-key="T"
-                onClick={() => setTool('text')}
-              >
-                <FontAwesomeIcon icon={faFont} />
-              </button>
-              {tool === 'text' ? (
-                <button
-                  className="iconDockBtn"
-                  title={ui.addTextLayer}
-                  aria-label={ui.addTextLayer}
-                  data-tip={ui.addTextLayer}
-                  onClick={addTextFromMenu}
-                >
-                  <FontAwesomeIcon icon={faPlus} />
-                </button>
-              ) : null}
-              <button
-                className={`iconDockBtn ${tool === 'crop' ? 'active' : ''}`}
-                title={ui.crop}
-                aria-label={ui.crop}
-                data-tip={ui.crop}
-                data-key="C"
-                onClick={() => setTool('crop')}
-              >
-                <FontAwesomeIcon icon={faCropSimple} />
-              </button>
-              <button
-                className="iconDockBtn"
-                title={ui.zoomReset}
-                aria-label={ui.zoomReset}
-                data-tip={ui.zoomReset}
-                onClick={() => {
-                  setZoom(1)
-                  setCanvasOffset({ x: 0, y: 0 })
-                }}
-              >
-                <FontAwesomeIcon icon={faMagnifyingGlass} />
-              </button>
-            </div>
-          ) : null}
-          {active ? <div className="modeBadge">{tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : ui.modeEraser}</div> : null}
-          {active ? (
-            <div className={`canvasZoomDock ${cropDockClass}`} title={ui.zoomHintCtrlWheel}>
-              <button className="iconDockBtn" onClick={() => zoomBy(-0.1)} title={ui.zoomOut} aria-label={ui.zoomOut}><FontAwesomeIcon icon={faMagnifyingGlassMinus} /></button>
-              <button className="iconDockBtn zoomPct" onClick={() => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) }} title={ui.zoomReset} aria-label={ui.zoomReset}>
-                {Math.round(canvasZoom * 100)}%
-              </button>
-              <button className="iconDockBtn" onClick={() => zoomBy(0.1)} title={ui.zoomIn} aria-label={ui.zoomIn}><FontAwesomeIcon icon={faMagnifyingGlassPlus} /></button>
-              <input
-                className="zoomSlider"
-                type="range"
-                min={ZOOM_MIN}
-                max={ZOOM_MAX}
-                step={0.01}
-                value={canvasZoom}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                aria-label={ui.zoomSlider}
-                title={ui.zoomSlider}
-              />
-              <div className="zoomPresetRow">
-                <button className="btn ghost" onClick={() => setZoom(0.5)}>50%</button>
-                <button className="btn ghost" onClick={() => setZoom(1)}>100%</button>
-                <button className="btn ghost" onClick={() => setZoom(2)}>200%</button>
-                <button className={`btn ghost ${showGrid ? 'active' : ''}`} onClick={() => setShowGrid((p) => !p)} title={ui.toggleGrid}>⊞</button>
-                <input
-                  type="number"
-                  min={10}
-                  max={1000}
-                  value={gridSpacing}
-                  onChange={(e) => setGridSpacing(Math.max(10, Number(e.target.value)))}
-                  style={{ width: 56, display: showGrid ? undefined : 'none' }}
-                  title={ui.toggleGrid}
-                />
-              </div>
-            </div>
-          ) : null}
+      {/* ═══ Canvas ═══ */}
+      <div
+        className={`canvasWrap ${tool === 'text' ? 'textMode' : ''} ${tool === 'crop' ? 'cropMode' : ''} ${tool === 'move' ? 'moveMode' : ''} ${guideFocusTarget === 'canvas' ? 'guideFlash' : ''}`}
+        ref={wrapRef}
+      >
           {active ? (
             <div className={`canvasHistoryDock ${cropDockClass}`}>
               <button
@@ -7707,13 +7588,68 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           )}
         </div>
 
+        {/* ═══ Right Sidebar ═══ */}
         {assets.length > 0 ? (
-        <div className="rightStack">
-        <div className="panel">
-          <div className="panelHeader">
-            <div className="title">{ui.controls}</div>
-          </div>
-          <div className="panelBody">
+        <div className="rightSidebar">
+        {/* ── Files accordion ── */}
+        <div className={`accordionSection ${accordionState.files ? 'expanded' : ''} ${guideFocusTarget === 'files' ? 'guideFlash' : ''}`}>
+          <button className="accordionHeader" onClick={() => toggleAccordion('files')}>
+            {ui.files} {assets.length > 0 ? `(${assets.length})` : ''}
+            <span className="accordionChevron">{accordionState.files ? '▾' : '▸'}</span>
+          </button>
+          {accordionState.files ? (
+            <div className="accordionBody">
+              <div className="assetList">
+                {assets.map((a) => (
+                  <div
+                    key={a.id}
+                    ref={(node) => { assetCardRefs.current[a.id] = node }}
+                    className={`asset ${a.id === activeId ? 'active' : ''} ${selectedAssetIds.includes(a.id) ? 'selected' : ''} ${a.id === flashAssetId ? 'flash' : ''} ${a.id === dragAssetId ? 'dragging' : ''} ${a.id === dragOverAssetId && a.id !== dragAssetId ? 'dropTarget' : ''}`}
+                    onClick={(e) => onAssetCardClick(e, a.id)}
+                    draggable
+                    onDragStart={(e) => onAssetDragStart(e, a.id)}
+                    onDragEnter={(e) => onAssetDragEnter(e, a.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => onAssetDrop(e, a.id)}
+                    onDragEnd={() => { setDragAssetId(null); setDragOverAssetId(null) }}
+                  >
+                    <img className="thumb" src={a.baseDataUrl} alt={a.name} loading="lazy" decoding="async" />
+                    <div className="assetMeta">
+                      <div className="assetTopRow">
+                        <div className="assetName">
+                          {a.name}
+                          {selectedAssetIds.includes(a.id) ? <span className="assetOrderBadge">{selectedAssetIds.indexOf(a.id) + 1}</span> : null}
+                        </div>
+                        <button className="assetRemoveBtn" onClick={(e) => { e.stopPropagation(); removeAsset(a.id) }} title={ui.removeAsset} aria-label={ui.removeAsset}>×</button>
+                      </div>
+                      <div className="assetSub">{ui.assetMeta(a.width, a.height, a.texts.length)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="assetListFooter">
+                <button className="btn ghost" onClick={() => setSelectedAssetIds(assets.map((a) => a.id))} disabled={assets.length === 0}>{ui.selectAllFiles}</button>
+                <button className="btn ghost" onClick={() => setSelectedAssetIds([])} disabled={selectedAssetIds.length === 0}>{ui.unselectAllFiles}</button>
+                <button className="btn ghost" onClick={invertAssetSelection} disabled={assets.length === 0}>{ui.invertSelection}</button>
+                <button className="btn ghost danger" onClick={clearAllAssets} disabled={assets.length === 0 || !!busy}>{ui.clearAllAssets}</button>
+                {selectedAssetIds.length > 0 ? (
+                  <button className="selectionCountBadge" onClick={() => scrollToAsset(selectedAssetIds[0]!)} title={ui.selectionHint}>
+                    {ui.selectedFilesCount(selectedAssetIds.length)}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* ── Properties accordion ── */}
+        <div className={`accordionSection ${accordionState.properties ? 'expanded' : ''}`}>
+          <button className="accordionHeader" onClick={() => toggleAccordion('properties')}>
+            {ui.controls}
+            <span className="accordionChevron">{accordionState.properties ? '▾' : '▸'}</span>
+          </button>
+          {accordionState.properties ? (
+            <div className="accordionBody">
             {tool !== 'text' ? (
             <div className="row toolRow">
               <div className="label">{ui.toolOptions}</div>
@@ -8214,59 +8150,67 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
             ) : null}
 
           </div>
+          ) : null}
         </div>
 
-        <div className="panel historyPanelBox">
-          <div className="panelHeader">
-            <div className="title">{ui.historyPanel}</div>
-            <div className="historyHeaderActions">
-              <input
-                className="input historySearchInput"
-                value={historyQuery}
-                onChange={(e) => setHistoryQuery(e.target.value)}
-                placeholder={ui.historySearchPlaceholder}
-              />
-              <button className="btn" onClick={addHistoryCheckpoint}>{ui.historyAddCheckpoint}</button>
-            </div>
-          </div>
-          <div className="panelBody">
-            <div className="historyList historyListTall">
-              {filteredHistoryTimeline.length > 0 ? (
-                filteredHistoryTimeline.map(({ item: h, index: originalIndex }, idx) => (
-                  <div key={h.key} className={`historyRow ${h.active ? 'active' : ''}`}>
-                    <button className="historyItem" onClick={() => jumpToHistory(originalIndex)}>
-                      <span className="historyIndex">#{idx + 1}</span>
-                      <span className="historyLabel">{localizeHistoryLabel(h.label)}</span>
-                    </button>
-                    {!h.active ? (
-                      <button className="iconMini dangerMini" onClick={() => deleteHistoryEntry(originalIndex)} aria-label={ui.deleteHistory} title={ui.deleteHistory}>
-                        🗑
-                      </button>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <div className="hint">{ui.noHistory}</div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className={`rightBottomActions ${guideFocusTarget === 'export' ? 'guideFlash' : ''}`}>
-          <button
-            className="btn"
-            onClick={() => {
-              if (!hasSelectedAssets && pendingExportScope === 'selected') {
-                setPendingExportScope('current')
-              }
-              setExportDialogOpen(true)
-            }}
-            disabled={assets.length === 0 || !!busy}
-          >
-            {ui.exportNow}
+        {/* ── History accordion ── */}
+        <div className={`accordionSection ${accordionState.history ? 'expanded' : ''}`}>
+          <button className="accordionHeader" onClick={() => toggleAccordion('history')}>
+            {ui.historyPanel}
+            <span className="accordionChevron">{accordionState.history ? '▾' : '▸'}</span>
           </button>
+          {accordionState.history ? (
+            <div className="accordionBody">
+              <div className="historyHeaderActions">
+                <input
+                  className="input historySearchInput"
+                  value={historyQuery}
+                  onChange={(e) => setHistoryQuery(e.target.value)}
+                  placeholder={ui.historySearchPlaceholder}
+                />
+                <button className="btn" onClick={addHistoryCheckpoint}>{ui.historyAddCheckpoint}</button>
+              </div>
+              <div className="historyList historyListTall">
+                {filteredHistoryTimeline.length > 0 ? (
+                  filteredHistoryTimeline.map(({ item: h, index: originalIndex }, idx) => (
+                    <div key={h.key} className={`historyRow ${h.active ? 'active' : ''}`}>
+                      <button className="historyItem" onClick={() => jumpToHistory(originalIndex)}>
+                        <span className="historyIndex">#{idx + 1}</span>
+                        <span className="historyLabel">{localizeHistoryLabel(h.label)}</span>
+                      </button>
+                      {!h.active ? (
+                        <button className="iconMini dangerMini" onClick={() => deleteHistoryEntry(originalIndex)} aria-label={ui.deleteHistory} title={ui.deleteHistory}>
+                          🗑
+                        </button>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <div className="hint">{ui.noHistory}</div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
+
         </div>
         ) : null}
+
+      {/* ═══ Status Bar ═══ */}
+      <div className="statusBar">
+        <span className="statusLeft">
+          {active ? `${active.width} × ${active.height}` : '—'}
+          {active ? ` · ${active.name}` : ''}
+        </span>
+        <span className="statusCenter">
+          {busy || ''}
+        </span>
+        <span className="statusRight">
+          <button className="statusBtn" onClick={() => setZoom(Math.max(0.1, canvasZoom - 0.25))} title="Zoom Out">−</button>
+          <span className="statusZoomPct">{Math.round(canvasZoom * 100)}%</span>
+          <button className="statusBtn" onClick={() => setZoom(Math.min(10, canvasZoom + 0.25))} title="Zoom In">+</button>
+          <button className="statusBtn" onClick={() => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) }} title="Reset Zoom">1:1</button>
+        </span>
       </div>
       {showActivityLog ? (
         <div className="activityPanel">
