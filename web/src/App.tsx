@@ -7,18 +7,24 @@ import {
   faCropSimple,
   faEraser,
   faFont,
+  faHand,
   faMagnifyingGlass,
   faObjectGroup,
+  faPen,
   faPlus,
   faRotateLeft,
   faRotateRight,
+  faShapes,
+  faSun,
+  faDroplet,
+  faEyeDropper,
   faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
 import { jsPDF } from 'jspdf'
 import PptxGenJS from 'pptxgenjs'
 
 import './App.css'
-import type { LayerGroup, MaskStroke, PageAsset, TextItem, Tool } from './lib/types'
+import type { BlurMode, DodgeMode, DrawingStroke, LayerGroup, MaskStroke, PageAsset, ShapeItem, ShapeType, TextItem, Tool } from './lib/types'
 import { importImageFile, importPdfFile } from './lib/importers'
 import { inpaintViaApi, segmentPointViaApi } from './lib/api'
 import { dataUrlToBlob, downloadBlob } from './lib/download'
@@ -555,6 +561,47 @@ async function renderAssetToDataUrl(
   stage.add(layer)
 
   layer.add(new Konva.Image({ image: baseImg, x: 0, y: 0, width: asset.width, height: asset.height }))
+
+  // Render drawings
+  for (const d of (asset.drawings ?? [])) {
+    layer.add(new Konva.Line({
+      points: d.points,
+      stroke: d.color,
+      strokeWidth: d.strokeWidth,
+      opacity: d.opacity,
+      lineCap: 'round',
+      lineJoin: 'round',
+      tension: 0.3,
+      listening: false,
+    }))
+  }
+
+  // Render shapes
+  for (const s of (asset.shapes ?? [])) {
+    if (!s.visible) continue
+    if (s.type === 'rect') {
+      layer.add(new Konva.Rect({
+        x: s.x, y: s.y, width: s.width, height: s.height,
+        fill: s.fill === 'transparent' ? undefined : s.fill,
+        stroke: s.stroke, strokeWidth: s.strokeWidth,
+        opacity: s.opacity, rotation: s.rotation, listening: false,
+      }))
+    } else if (s.type === 'ellipse') {
+      layer.add(new Konva.Ellipse({
+        x: s.x + s.width / 2, y: s.y + s.height / 2,
+        radiusX: s.width / 2, radiusY: s.height / 2,
+        fill: s.fill === 'transparent' ? undefined : s.fill,
+        stroke: s.stroke, strokeWidth: s.strokeWidth,
+        opacity: s.opacity, rotation: s.rotation, listening: false,
+      }))
+    } else {
+      layer.add(new Konva.Line({
+        points: [s.x, s.y, s.x + s.width, s.y + s.height],
+        stroke: s.stroke, strokeWidth: s.strokeWidth,
+        opacity: s.opacity, lineCap: 'round', listening: false,
+      }))
+    }
+  }
 
   for (const t of asset.texts) {
     if (!t.visible) continue
@@ -1201,6 +1248,12 @@ const UI = {
     modeText: '모드: 텍스트 입력',
     modeCrop: '모드: 잘라내기',
     modeMove: '모드: 이동',
+    modePen: '모드: 펜',
+    modeShape: '모드: 도형',
+    modeBlur: '모드: 블러/샤프닝',
+    modeDodge: '모드: 닷지/번',
+    modeEyedropper: '모드: 스포이드',
+    modeHand: '모드: 손바닥',
     textSelectMode: '텍스트 선택',
     crop: '잘라내기',
     zoomIn: '확대',
@@ -1463,6 +1516,43 @@ const UI = {
     propPreset: '프리셋',
     propColor: '색상',
     propBgAlpha: '배경 투명도',
+    toolPen: '펜',
+    toolShape: '도형',
+    toolBlur: '블러/샤프닝',
+    toolDodge: '닷지/번',
+    toolEyedropper: '스포이드',
+    toolHand: '손바닥',
+    penHint: '캔버스에 자유롭게 그리거나 주석을 추가합니다.',
+    penColor: '펜 색상',
+    penOpacity: '펜 불투명도',
+    shapeHint: '드래그하여 도형을 그립니다.',
+    shapeTypeRect: '사각형',
+    shapeTypeEllipse: '타원',
+    shapeTypeLine: '직선',
+    shapeTypeArrow: '화살표',
+    shapeFill: '채우기',
+    shapeStroke: '테두리',
+    shapeStrokeWidth: '두께',
+    blurHint: '브러시로 칠한 영역에 블러 또는 샤프닝 효과를 적용합니다.',
+    blurModeBlur: '블러',
+    blurModeSharpen: '샤프닝',
+    blurStrength: '강도',
+    dodgeHint: '브러시로 칠한 영역을 밝게(닷지) 또는 어둡게(번) 합니다.',
+    dodgeModeDodge: '닷지 (밝게)',
+    dodgeModeBurn: '번 (어둡게)',
+    dodgeStrength: '강도',
+    eyedropperHint: '캔버스를 클릭하여 색상을 추출합니다.',
+    eyedropperPicked: '추출된 색상',
+    eyedropperCopied: '색상 코드를 복사했습니다',
+    handHint: '드래그하여 캔버스를 이동합니다. (Space+드래그와 동일)',
+    clearDrawings: '그리기 전체 삭제',
+    clearShapes: '도형 전체 삭제',
+    historyDraw: '펜 그리기',
+    historyShape: '도형 추가',
+    historyBlur: '블러/샤프닝',
+    historyDodge: '닷지/번',
+    historyClearDrawings: '그리기 전체 삭제',
+    historyClearShapes: '도형 전체 삭제',
   },
   en: {
     tag: 'Image/PDF editor',
@@ -1669,6 +1759,12 @@ const UI = {
     modeText: 'Mode: Text Insert',
     modeCrop: 'Mode: Crop',
     modeMove: 'Mode: Move',
+    modePen: 'Mode: Pen',
+    modeShape: 'Mode: Shape',
+    modeBlur: 'Mode: Blur/Sharpen',
+    modeDodge: 'Mode: Dodge/Burn',
+    modeEyedropper: 'Mode: Eyedropper',
+    modeHand: 'Mode: Hand',
     textSelectMode: 'Text select',
     crop: 'Crop',
     zoomIn: 'Zoom in',
@@ -1931,6 +2027,43 @@ const UI = {
     propPreset: 'Preset',
     propColor: 'Color',
     propBgAlpha: 'BG Opacity',
+    toolPen: 'Pen',
+    toolShape: 'Shape',
+    toolBlur: 'Blur/Sharpen',
+    toolDodge: 'Dodge/Burn',
+    toolEyedropper: 'Eyedropper',
+    toolHand: 'Hand',
+    penHint: 'Draw freely or annotate on the canvas.',
+    penColor: 'Pen Color',
+    penOpacity: 'Pen Opacity',
+    shapeHint: 'Drag to draw a shape.',
+    shapeTypeRect: 'Rectangle',
+    shapeTypeEllipse: 'Ellipse',
+    shapeTypeLine: 'Line',
+    shapeTypeArrow: 'Arrow',
+    shapeFill: 'Fill',
+    shapeStroke: 'Stroke',
+    shapeStrokeWidth: 'Width',
+    blurHint: 'Paint to apply blur or sharpen effect.',
+    blurModeBlur: 'Blur',
+    blurModeSharpen: 'Sharpen',
+    blurStrength: 'Strength',
+    dodgeHint: 'Paint to brighten (dodge) or darken (burn).',
+    dodgeModeDodge: 'Dodge (Lighten)',
+    dodgeModeBurn: 'Burn (Darken)',
+    dodgeStrength: 'Strength',
+    eyedropperHint: 'Click to pick a color from the canvas.',
+    eyedropperPicked: 'Picked Color',
+    eyedropperCopied: 'Color code copied',
+    handHint: 'Drag to pan the canvas. (Same as Space+drag)',
+    clearDrawings: 'Clear All Drawings',
+    clearShapes: 'Clear All Shapes',
+    historyDraw: 'Pen Draw',
+    historyShape: 'Add Shape',
+    historyBlur: 'Blur/Sharpen',
+    historyDodge: 'Dodge/Burn',
+    historyClearDrawings: 'Clear All Drawings',
+    historyClearShapes: 'Clear All Shapes',
   },
 } as const
 
@@ -2030,6 +2163,24 @@ function App() {
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
   const [selectedTextIds, setSelectedTextIds] = useState<string[]>([])
   const [textInsertArmed, setTextInsertArmed] = useState(false)
+  // ── New tool state ──
+  const [penColor, setPenColor] = useState('#ffffff')
+  const [penOpacity, setPenOpacity] = useState(1)
+  const penDrawing = useRef<DrawingStroke | null>(null)
+  const [shapeType, setShapeType] = useState<ShapeType>('rect')
+  const [shapeFill, setShapeFill] = useState('transparent')
+  const [shapeStroke, setShapeStroke] = useState('#ffffff')
+  const [shapeStrokeWidth, setShapeStrokeWidth] = useState(2)
+  const [shapeOpacity, setShapeOpacity] = useState(1)
+  const shapeStartRef = useRef<{ x: number; y: number } | null>(null)
+  const [currentShape, setCurrentShape] = useState<ShapeItem | null>(null)
+  const [blurMode, setBlurMode] = useState<BlurMode>('blur')
+  const [blurStrength, setBlurStrength] = useState(8)
+  const blurDrawing = useRef<MaskStroke | null>(null)
+  const [dodgeMode, setDodgeMode] = useState<DodgeMode>('dodge')
+  const [dodgeStrength, setDodgeStrength] = useState(20)
+  const dodgeDrawing = useRef<MaskStroke | null>(null)
+  const [eyedropperColor, setEyedropperColor] = useState('#000000')
   const [pendingMaskAction, setPendingMaskAction] = useState<PendingMaskAction | null>(null)
   const [maskApplyScope, setMaskApplyScope] = useState<MaskApplyScope>('full')
   const [maskPreviewOpacity, setMaskPreviewOpacity] = useState(0.58)
@@ -3585,6 +3736,36 @@ function App() {
         setTool('eraser')
         return
       }
+      if (key === 'p') {
+        e.preventDefault()
+        setTool('pen')
+        return
+      }
+      if (key === 'u') {
+        e.preventDefault()
+        setTool('shape')
+        return
+      }
+      if (key === 'r') {
+        e.preventDefault()
+        setTool('blur')
+        return
+      }
+      if (key === 'o') {
+        e.preventDefault()
+        setTool('dodge')
+        return
+      }
+      if (key === 'i' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        setTool('eyedropper')
+        return
+      }
+      if (key === 'h') {
+        e.preventDefault()
+        setTool('hand')
+        return
+      }
       if ((key === 'delete' || key === 'backspace') && selectedText) {
         if (selectedText.locked) return
         e.preventDefault()
@@ -3648,6 +3829,8 @@ function App() {
               maskStrokes: [],
               groups: [{ ...DEFAULT_GROUP }],
               texts: [],
+              drawings: [],
+              shapes: [],
             })
           }
         } else if (file.type.startsWith('image/')) {
@@ -3661,6 +3844,8 @@ function App() {
             maskStrokes: [],
             groups: [{ ...DEFAULT_GROUP }],
             texts: [],
+            drawings: [],
+            shapes: [],
           })
         }
       }
@@ -3689,6 +3874,8 @@ function App() {
       })),
       groups: asset.groups.map((group) => ({ ...group })),
       texts: asset.texts.map((text) => ({ ...text })),
+      drawings: (asset.drawings ?? []).map((d) => ({ ...d, points: [...d.points] })),
+      shapes: (asset.shapes ?? []).map((s) => ({ ...s })),
     }
   }
 
@@ -4459,7 +4646,8 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
   }
 
   function updateBrushCursor(stage: Konva.Stage) {
-    if (!active || (tool !== 'restore' && tool !== 'eraser')) {
+    const brushTools: Tool[] = ['restore', 'eraser', 'pen', 'blur', 'dodge']
+    if (!active || !brushTools.includes(tool)) {
       if (brushCursor.visible) {
         setBrushCursor((prev) => ({ ...prev, visible: false }))
       }
@@ -4535,6 +4723,91 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     else if (pointer.y >= wrapSize.h - edge) dy = -7
     if (dx === 0 && dy === 0) return
     setCanvasOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+  }
+
+  function pickColorFromCanvas(x: number, y: number) {
+    if (!active) return
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = active.width; canvas.height = active.height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+      const px = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data
+      const hex = '#' + [px[0], px[1], px[2]].map((v) => (v ?? 0).toString(16).padStart(2, '0')).join('')
+      setEyedropperColor(hex)
+      setPenColor(hex)
+    }
+    img.src = active.baseDataUrl
+  }
+
+  function applyPixelBrushEffect(effectType: 'blur' | 'dodge', stroke: MaskStroke) {
+    if (!active) return
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = active.width; canvas.height = active.height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+
+      // Create mask from stroke
+      const maskCanvas = document.createElement('canvas')
+      maskCanvas.width = active.width; maskCanvas.height = active.height
+      const maskCtx = maskCanvas.getContext('2d')!
+      maskCtx.strokeStyle = 'white'
+      maskCtx.lineCap = 'round'
+      maskCtx.lineJoin = 'round'
+      maskCtx.lineWidth = stroke.strokeWidth
+      maskCtx.beginPath()
+      for (let i = 0; i < stroke.points.length; i += 2) {
+        if (i === 0) maskCtx.moveTo(stroke.points[i]!, stroke.points[i + 1]!)
+        else maskCtx.lineTo(stroke.points[i]!, stroke.points[i + 1]!)
+      }
+      maskCtx.stroke()
+      const maskData = maskCtx.getImageData(0, 0, active.width, active.height)
+
+      if (effectType === 'blur') {
+        // Apply blur using CanvasRenderingContext2D filter
+        const blurCanvas = document.createElement('canvas')
+        blurCanvas.width = active.width; blurCanvas.height = active.height
+        const blurCtx = blurCanvas.getContext('2d')!
+        const filterVal = blurMode === 'blur' ? `blur(${blurStrength}px)` : `contrast(${100 + blurStrength * 5}%)`
+        blurCtx.filter = filterVal
+        blurCtx.drawImage(img, 0, 0)
+        blurCtx.filter = 'none'
+        const blurData = blurCtx.getImageData(0, 0, active.width, active.height)
+        const origData = ctx.getImageData(0, 0, active.width, active.height)
+        // Blend based on mask
+        for (let i = 0; i < origData.data.length; i += 4) {
+          const alpha = (maskData.data[i] ?? 0) / 255
+          if (alpha > 0) {
+            origData.data[i] = Math.round((origData.data[i]! * (1 - alpha)) + (blurData.data[i]! * alpha))
+            origData.data[i + 1] = Math.round((origData.data[i + 1]! * (1 - alpha)) + (blurData.data[i + 1]! * alpha))
+            origData.data[i + 2] = Math.round((origData.data[i + 2]! * (1 - alpha)) + (blurData.data[i + 2]! * alpha))
+          }
+        }
+        ctx.putImageData(origData, 0, 0)
+      } else {
+        // Dodge/Burn: adjust brightness
+        const origData = ctx.getImageData(0, 0, active.width, active.height)
+        const amount = dodgeMode === 'dodge' ? dodgeStrength : -dodgeStrength
+        for (let i = 0; i < origData.data.length; i += 4) {
+          const alpha = (maskData.data[i] ?? 0) / 255
+          if (alpha > 0) {
+            const adj = amount * alpha
+            origData.data[i] = clamp(Math.round((origData.data[i] ?? 0) + adj), 0, 255)
+            origData.data[i + 1] = clamp(Math.round((origData.data[i + 1] ?? 0) + adj), 0, 255)
+            origData.data[i + 2] = clamp(Math.round((origData.data[i + 2] ?? 0) + adj), 0, 255)
+          }
+        }
+        ctx.putImageData(origData, 0, 0)
+      }
+
+      const resultUrl = canvas.toDataURL('image/png')
+      const historyLabel = effectType === 'blur' ? ui.historyBlur : ui.historyDodge
+      updateActiveWithHistory(historyLabel, (a) => ({ ...a, baseDataUrl: resultUrl }))
+    }
+    img.src = active.baseDataUrl
   }
 
   function onStageMouseDown(e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) {
@@ -4692,6 +4965,69 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
       return
     }
 
+    // ── Hand tool: always pan ──
+    if (tool === 'hand') {
+      if (isMouseEvent) e.evt.preventDefault()
+      const pointer = stage.getPointerPosition()
+      if (!pointer) return
+      stopMoveMomentum()
+      movePanRef.current = { x: pointer.x, y: pointer.y, ts: performance.now() }
+      return
+    }
+
+    // ── Eyedropper tool ──
+    if (tool === 'eyedropper') {
+      const xy = pointerToImageXY(stage)
+      if (!xy || !active) return
+      pickColorFromCanvas(xy.x, xy.y)
+      return
+    }
+
+    // ── Pen tool ──
+    if (tool === 'pen') {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      const id = uid('draw')
+      const stroke: DrawingStroke = { id, points: [xy.x, xy.y], strokeWidth: brushSize, color: penColor, opacity: penOpacity }
+      penDrawing.current = stroke
+      updateActive((a) => ({ ...a, drawings: [...(a.drawings ?? []), stroke] }))
+      return
+    }
+
+    // ── Shape tool ──
+    if (tool === 'shape') {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      shapeStartRef.current = { x: xy.x, y: xy.y }
+      const id = uid('shape')
+      setCurrentShape({
+        id, type: shapeType, x: xy.x, y: xy.y, width: 1, height: 1,
+        fill: shapeFill, stroke: shapeStroke, strokeWidth: shapeStrokeWidth,
+        opacity: shapeOpacity, rotation: 0, visible: true, locked: false,
+      })
+      return
+    }
+
+    // ── Blur tool ──
+    if (tool === 'blur') {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      const id = uid('blur')
+      const stroke: MaskStroke = { id, points: [xy.x, xy.y], strokeWidth: brushSize }
+      blurDrawing.current = stroke
+      return
+    }
+
+    // ── Dodge tool ──
+    if (tool === 'dodge') {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      const id = uid('dodge')
+      const stroke: MaskStroke = { id, points: [xy.x, xy.y], strokeWidth: brushSize }
+      dodgeDrawing.current = stroke
+      return
+    }
+
     const xy = pointerToImageXY(stage)
     if (!xy) return
     const id = uid('stroke')
@@ -4787,6 +5123,51 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
       return
     }
 
+    // ── Pen move ──
+    if (tool === 'pen' && penDrawing.current) {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      penDrawing.current.points = [...penDrawing.current.points, xy.x, xy.y]
+      const pd = penDrawing.current
+      updateActive((a) => ({
+        ...a,
+        drawings: (a.drawings ?? []).map((d) =>
+          d.id === pd.id ? { ...d, points: [...pd.points] } : d,
+        ),
+      }))
+      return
+    }
+
+    // ── Shape move ──
+    if (tool === 'shape' && shapeStartRef.current && currentShape) {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      const sx = shapeStartRef.current.x
+      const sy = shapeStartRef.current.y
+      setCurrentShape((prev) => prev ? {
+        ...prev,
+        x: Math.min(sx, xy.x), y: Math.min(sy, xy.y),
+        width: Math.abs(xy.x - sx), height: Math.abs(xy.y - sy),
+      } : null)
+      return
+    }
+
+    // ── Blur move ──
+    if (tool === 'blur' && blurDrawing.current) {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      blurDrawing.current.points = [...blurDrawing.current.points, xy.x, xy.y]
+      return
+    }
+
+    // ── Dodge move ──
+    if (tool === 'dodge' && dodgeDrawing.current) {
+      const xy = pointerToImageXY(stage)
+      if (!xy) return
+      dodgeDrawing.current.points = [...dodgeDrawing.current.points, xy.x, xy.y]
+      return
+    }
+
     const d = drawing.current
     if (!d || (tool !== 'restore' && tool !== 'eraser')) return
     const xy = pointerToImageXY(stage)
@@ -4852,6 +5233,45 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
       return
     }
 
+    // ── Pen up ──
+    if (tool === 'pen' && penDrawing.current) {
+      penDrawing.current = null
+      return
+    }
+
+    // ── Shape up ──
+    if (tool === 'shape' && currentShape) {
+      shapeStartRef.current = null
+      if (currentShape.width > 2 && currentShape.height > 2) {
+        updateActiveWithHistory(ui.historyShape, (a) => ({
+          ...a,
+          shapes: [...(a.shapes ?? []), currentShape],
+        }))
+      }
+      setCurrentShape(null)
+      return
+    }
+
+    // ── Blur up ──
+    if (tool === 'blur' && blurDrawing.current) {
+      const stroke = blurDrawing.current
+      blurDrawing.current = null
+      if (stroke.points.length >= 4 && active) {
+        applyPixelBrushEffect('blur', stroke)
+      }
+      return
+    }
+
+    // ── Dodge up ──
+    if (tool === 'dodge' && dodgeDrawing.current) {
+      const stroke = dodgeDrawing.current
+      dodgeDrawing.current = null
+      if (stroke.points.length >= 4 && active) {
+        applyPixelBrushEffect('dodge', stroke)
+      }
+      return
+    }
+
     if (tool === 'crop') {
       cropStartRef.current = null
       cropResizeRef.current = null
@@ -4873,6 +5293,11 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
   function onStageMouseLeave() {
     drawing.current = null
+    penDrawing.current = null
+    blurDrawing.current = null
+    dodgeDrawing.current = null
+    shapeStartRef.current = null
+    setCurrentShape(null)
     cropStartRef.current = null
     cropResizeRef.current = null
     setCropHoverHandle(null)
@@ -6602,7 +7027,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         <div className="optionsDivider" />
         {active ? (
           <span className="optionsModeTag">
-            {tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : ui.modeEraser}
+            {tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : tool === 'pen' ? ui.modePen : tool === 'shape' ? ui.modeShape : tool === 'blur' ? ui.modeBlur : tool === 'dodge' ? ui.modeDodge : tool === 'eyedropper' ? ui.modeEyedropper : tool === 'hand' ? ui.modeHand : ui.modeEraser}
           </span>
         ) : null}
         {active && (tool === 'restore' || tool === 'eraser') ? (
@@ -7058,6 +7483,27 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           <FontAwesomeIcon icon={faCropSimple} />
         </button>
         <div className="toolbarSep" />
+        <button className={`toolBtn ${tool === 'pen' ? 'active' : ''}`} title={ui.toolPen} aria-label={ui.toolPen} data-tip={ui.toolPen} data-key="P" onClick={() => setTool('pen')} disabled={!active}>
+          <FontAwesomeIcon icon={faPen} />
+        </button>
+        <button className={`toolBtn ${tool === 'shape' ? 'active' : ''}`} title={ui.toolShape} aria-label={ui.toolShape} data-tip={ui.toolShape} data-key="U" onClick={() => setTool('shape')} disabled={!active}>
+          <FontAwesomeIcon icon={faShapes} />
+        </button>
+        <div className="toolbarSep" />
+        <button className={`toolBtn ${tool === 'blur' ? 'active' : ''}`} title={ui.toolBlur} aria-label={ui.toolBlur} data-tip={ui.toolBlur} data-key="R" onClick={() => setTool('blur')} disabled={!active}>
+          <FontAwesomeIcon icon={faDroplet} />
+        </button>
+        <button className={`toolBtn ${tool === 'dodge' ? 'active' : ''}`} title={ui.toolDodge} aria-label={ui.toolDodge} data-tip={ui.toolDodge} data-key="O" onClick={() => setTool('dodge')} disabled={!active}>
+          <FontAwesomeIcon icon={faSun} />
+        </button>
+        <div className="toolbarSep" />
+        <button className={`toolBtn ${tool === 'eyedropper' ? 'active' : ''}`} title={ui.toolEyedropper} aria-label={ui.toolEyedropper} data-tip={ui.toolEyedropper} data-key="I" onClick={() => setTool('eyedropper')} disabled={!active}>
+          <FontAwesomeIcon icon={faEyeDropper} />
+        </button>
+        <button className={`toolBtn ${tool === 'hand' ? 'active' : ''}`} title={ui.toolHand} aria-label={ui.toolHand} data-tip={ui.toolHand} data-key="H" onClick={() => setTool('hand')} disabled={!active}>
+          <FontAwesomeIcon icon={faHand} />
+        </button>
+        <div className="toolbarSep" />
         <button className="toolBtn" title={ui.zoomReset} aria-label={ui.zoomReset} data-tip={ui.zoomReset} onClick={() => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) }} disabled={!active}>
           <FontAwesomeIcon icon={faMagnifyingGlass} />
         </button>
@@ -7065,7 +7511,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
       {/* ═══ Canvas ═══ */}
       <div
-        className={`canvasWrap ${tool === 'text' ? 'textMode' : ''} ${tool === 'crop' ? 'cropMode' : ''} ${tool === 'move' ? 'moveMode' : ''} ${guideFocusTarget === 'canvas' ? 'guideFlash' : ''}`}
+        className={`canvasWrap ${tool === 'text' ? 'textMode' : ''} ${tool === 'crop' ? 'cropMode' : ''} ${tool === 'move' ? 'moveMode' : ''} ${tool === 'hand' ? 'handMode' : ''} ${tool === 'eyedropper' ? 'eyedropperMode' : ''} ${tool === 'pen' ? 'penMode' : ''} ${guideFocusTarget === 'canvas' ? 'guideFlash' : ''}`}
         ref={wrapRef}
       >
           {active ? (
@@ -7509,6 +7955,63 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     />
                   ))}
 
+                  {/* ── Drawing strokes ── */}
+                  {(active.drawings ?? []).map((d) => (
+                    <Line
+                      key={d.id}
+                      points={d.points}
+                      stroke={d.color}
+                      strokeWidth={d.strokeWidth}
+                      opacity={d.opacity}
+                      lineCap="round"
+                      lineJoin="round"
+                      tension={0.3}
+                      listening={false}
+                    />
+                  ))}
+
+                  {/* ── Shape items ── */}
+                  {(active.shapes ?? []).filter((s) => s.visible).map((s) => {
+                    if (s.type === 'rect') return (
+                      <Rect key={s.id} x={s.x} y={s.y} width={s.width} height={s.height}
+                        fill={s.fill === 'transparent' ? undefined : s.fill} stroke={s.stroke}
+                        strokeWidth={s.strokeWidth} opacity={s.opacity} rotation={s.rotation} listening={false} />
+                    )
+                    if (s.type === 'ellipse') return (
+                      <Ellipse key={s.id} x={s.x + s.width / 2} y={s.y + s.height / 2}
+                        radiusX={s.width / 2} radiusY={s.height / 2}
+                        fill={s.fill === 'transparent' ? undefined : s.fill} stroke={s.stroke}
+                        strokeWidth={s.strokeWidth} opacity={s.opacity} rotation={s.rotation} listening={false} />
+                    )
+                    // line or arrow
+                    return (
+                      <Line key={s.id} points={[s.x, s.y, s.x + s.width, s.y + s.height]}
+                        stroke={s.stroke} strokeWidth={s.strokeWidth} opacity={s.opacity}
+                        lineCap="round" listening={false} />
+                    )
+                  })}
+
+                  {/* ── Current shape being drawn ── */}
+                  {currentShape ? (() => {
+                    const s = currentShape
+                    if (s.type === 'rect') return (
+                      <Rect x={s.x} y={s.y} width={s.width} height={s.height}
+                        fill={s.fill === 'transparent' ? undefined : s.fill} stroke={s.stroke}
+                        strokeWidth={s.strokeWidth} opacity={s.opacity} dash={[4, 4]} listening={false} />
+                    )
+                    if (s.type === 'ellipse') return (
+                      <Ellipse x={s.x + s.width / 2} y={s.y + s.height / 2}
+                        radiusX={s.width / 2} radiusY={s.height / 2}
+                        fill={s.fill === 'transparent' ? undefined : s.fill} stroke={s.stroke}
+                        strokeWidth={s.strokeWidth} opacity={s.opacity} dash={[4, 4]} listening={false} />
+                    )
+                    return (
+                      <Line points={[s.x, s.y, s.x + s.width, s.y + s.height]}
+                        stroke={s.stroke} strokeWidth={s.strokeWidth} opacity={s.opacity}
+                        lineCap="round" dash={[4, 4]} listening={false} />
+                    )
+                  })() : null}
+
                   {pendingMaskBounds ? (
                     <Rect
                       x={pendingMaskBounds.x}
@@ -7602,7 +8105,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     </>
                   ) : null}
 
-                  {(tool === 'restore' || tool === 'eraser') && brushCursor.visible ? (
+                  {(tool === 'restore' || tool === 'eraser' || tool === 'pen' || tool === 'blur' || tool === 'dodge') && brushCursor.visible ? (
                     <Circle
                       x={brushCursor.x}
                       y={brushCursor.y}
@@ -8012,10 +8515,176 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 </div>
               ) : null}
 
+              {/* ── Pen Tool ── */}
+              {tool === 'pen' ? (
+                <>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.brushSize}</div>
+                    <div className="propSliderRow">
+                      <span className="propLabel">{ui.propSize}</span>
+                      <input className="input smoothRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+                      <span className="propSliderVal">{brushSize}px</span>
+                    </div>
+                  </div>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.propColor}</div>
+                    <div className="propSwatchRow">
+                      <label className="propSwatch" title={ui.penColor}>
+                        <input type="color" value={penColor} onChange={(e) => setPenColor(e.target.value)} />
+                        <span className="propSwatchFill" style={{ background: penColor }} />
+                        <span className="propSwatchLabel">{ui.penColor}</span>
+                      </label>
+                    </div>
+                    <div className="propSliderRow" style={{ marginTop: 4 }}>
+                      <span className="propLabel">{ui.propOpacity}</span>
+                      <input className="smoothRange" type="range" min={0} max={100} step={1} value={Math.round(penOpacity * 100)} onChange={(e) => setPenOpacity(clamp(Number(e.target.value) / 100, 0, 1))} />
+                      <span className="propSliderVal">{Math.round(penOpacity * 100)}%</span>
+                    </div>
+                  </div>
+                  <div className="propSection">
+                    <div className="propBtnGrid cols2">
+                      <button className="btn" disabled={!active || !(active.drawings ?? []).length} onClick={() => updateActiveWithHistory(ui.historyClearDrawings, (a) => ({ ...a, drawings: [] }))}>{ui.clearDrawings}</button>
+                    </div>
+                    <div className="hint">{ui.penHint}</div>
+                  </div>
+                </>
+              ) : null}
+
+              {/* ── Shape Tool ── */}
+              {tool === 'shape' ? (
+                <>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.propMode}</div>
+                    <div className="propBtnGrid cols4">
+                      <button className={`btn ${shapeType === 'rect' ? 'active' : ''}`} onClick={() => setShapeType('rect')}>{ui.shapeTypeRect}</button>
+                      <button className={`btn ${shapeType === 'ellipse' ? 'active' : ''}`} onClick={() => setShapeType('ellipse')}>{ui.shapeTypeEllipse}</button>
+                      <button className={`btn ${shapeType === 'line' ? 'active' : ''}`} onClick={() => setShapeType('line')}>{ui.shapeTypeLine}</button>
+                      <button className={`btn ${shapeType === 'arrow' ? 'active' : ''}`} onClick={() => setShapeType('arrow')}>{ui.shapeTypeArrow}</button>
+                    </div>
+                  </div>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.propColor}</div>
+                    <div className="propSwatchRow">
+                      <label className="propSwatch" title={ui.shapeFill}>
+                        <input type="color" value={shapeFill === 'transparent' ? '#000000' : shapeFill} onChange={(e) => setShapeFill(e.target.value)} />
+                        <span className="propSwatchFill" style={{ background: shapeFill === 'transparent' ? 'repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50%/8px 8px' : shapeFill }} />
+                        <span className="propSwatchLabel">{ui.shapeFill}</span>
+                      </label>
+                      <label className="propSwatch" title={ui.shapeStroke}>
+                        <input type="color" value={shapeStroke} onChange={(e) => setShapeStroke(e.target.value)} />
+                        <span className="propSwatchFill" style={{ background: shapeStroke }} />
+                        <span className="propSwatchLabel">{ui.shapeStroke}</span>
+                      </label>
+                    </div>
+                    <div className="propSliderRow" style={{ marginTop: 4 }}>
+                      <span className="propLabel">{ui.shapeStrokeWidth}</span>
+                      <input className="smoothRange" type="range" min={0} max={20} step={1} value={shapeStrokeWidth} onChange={(e) => setShapeStrokeWidth(Number(e.target.value))} />
+                      <span className="propSliderVal">{shapeStrokeWidth}px</span>
+                    </div>
+                    <div className="propSliderRow">
+                      <span className="propLabel">{ui.propOpacity}</span>
+                      <input className="smoothRange" type="range" min={0} max={100} step={1} value={Math.round(shapeOpacity * 100)} onChange={(e) => setShapeOpacity(clamp(Number(e.target.value) / 100, 0, 1))} />
+                      <span className="propSliderVal">{Math.round(shapeOpacity * 100)}%</span>
+                    </div>
+                    <div className="propRow">
+                      <span className="propLabel">{ui.shapeFill}</span>
+                      <div className="propValue">
+                        <button className={`btn ${shapeFill === 'transparent' ? 'active' : ''}`} onClick={() => setShapeFill(shapeFill === 'transparent' ? '#ffffff' : 'transparent')}>
+                          {shapeFill === 'transparent' ? '∅' : '■'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="propSection">
+                    <div className="propBtnGrid cols2">
+                      <button className="btn" disabled={!active || !(active.shapes ?? []).length} onClick={() => updateActiveWithHistory(ui.historyClearShapes, (a) => ({ ...a, shapes: [] }))}>{ui.clearShapes}</button>
+                    </div>
+                    <div className="hint">{ui.shapeHint}</div>
+                  </div>
+                </>
+              ) : null}
+
+              {/* ── Blur Tool ── */}
+              {tool === 'blur' ? (
+                <>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.propMode}</div>
+                    <div className="propBtnGrid cols2">
+                      <button className={`btn ${blurMode === 'blur' ? 'active' : ''}`} onClick={() => setBlurMode('blur')}>{ui.blurModeBlur}</button>
+                      <button className={`btn ${blurMode === 'sharpen' ? 'active' : ''}`} onClick={() => setBlurMode('sharpen')}>{ui.blurModeSharpen}</button>
+                    </div>
+                  </div>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.brushSize}</div>
+                    <div className="propSliderRow">
+                      <span className="propLabel">{ui.propSize}</span>
+                      <input className="input smoothRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+                      <span className="propSliderVal">{brushSize}px</span>
+                    </div>
+                    <div className="propSliderRow">
+                      <span className="propLabel">{ui.blurStrength}</span>
+                      <input className="smoothRange" type="range" min={1} max={30} step={1} value={blurStrength} onChange={(e) => setBlurStrength(Number(e.target.value))} />
+                      <span className="propSliderVal">{blurStrength}</span>
+                    </div>
+                    <div className="hint">{ui.blurHint}</div>
+                  </div>
+                </>
+              ) : null}
+
+              {/* ── Dodge/Burn Tool ── */}
+              {tool === 'dodge' ? (
+                <>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.propMode}</div>
+                    <div className="propBtnGrid cols2">
+                      <button className={`btn ${dodgeMode === 'dodge' ? 'active' : ''}`} onClick={() => setDodgeMode('dodge')}>{ui.dodgeModeDodge}</button>
+                      <button className={`btn ${dodgeMode === 'burn' ? 'active' : ''}`} onClick={() => setDodgeMode('burn')}>{ui.dodgeModeBurn}</button>
+                    </div>
+                  </div>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.brushSize}</div>
+                    <div className="propSliderRow">
+                      <span className="propLabel">{ui.propSize}</span>
+                      <input className="input smoothRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+                      <span className="propSliderVal">{brushSize}px</span>
+                    </div>
+                    <div className="propSliderRow">
+                      <span className="propLabel">{ui.dodgeStrength}</span>
+                      <input className="smoothRange" type="range" min={1} max={80} step={1} value={dodgeStrength} onChange={(e) => setDodgeStrength(Number(e.target.value))} />
+                      <span className="propSliderVal">{dodgeStrength}</span>
+                    </div>
+                    <div className="hint">{ui.dodgeHint}</div>
+                  </div>
+                </>
+              ) : null}
+
+              {/* ── Eyedropper Tool ── */}
+              {tool === 'eyedropper' ? (
+                <div className="propSection">
+                  <div className="propSectionTitle">{ui.eyedropperPicked}</div>
+                  <div className="propRow">
+                    <span className="propLabel">{ui.propColor}</span>
+                    <div className="propValue" style={{ gap: 6 }}>
+                      <span className="propSwatchFill" style={{ display: 'inline-block', width: 26, height: 26, borderRadius: 3, background: eyedropperColor, border: '1px solid rgba(255,255,255,0.15)' }} />
+                      <span style={{ fontFamily: 'monospace', fontSize: 13 }}>{eyedropperColor}</span>
+                      <button className="btn" onClick={() => { void navigator.clipboard.writeText(eyedropperColor); setStatus(ui.eyedropperCopied) }} style={{ marginLeft: 'auto' }}>📋</button>
+                    </div>
+                  </div>
+                  <div className="hint">{ui.eyedropperHint}</div>
+                </div>
+              ) : null}
+
+              {/* ── Hand Tool ── */}
+              {tool === 'hand' ? (
+                <div className="propSection">
+                  <div className="hint">{ui.handHint}</div>
+                </div>
+              ) : null}
+
             </>
             ) : null}
 
-            {tool !== 'eraser' && tool !== 'restore' && tool !== 'select' ? (<>
+            {tool === 'text' || tool === 'move' ? (<>
               {/* ── Text: Font & Style ── */}
               {selectedText ? (
                 <div className="propSection">

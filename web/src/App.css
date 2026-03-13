@@ -559,6 +559,10 @@
 .canvasWrap.textMode { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); }
 .canvasWrap.cropMode { box-shadow: inset 0 0 0 1px rgba(138, 247, 219, 0.3); }
 .canvasWrap.moveMode { box-shadow: inset 0 0 0 1px rgba(160, 180, 255, 0.2); }
+.canvasWrap.handMode { cursor: grab; }
+.canvasWrap.handMode:active { cursor: grabbing; }
+.canvasWrap.eyedropperMode { cursor: crosshair; }
+.canvasWrap.penMode { cursor: crosshair; }
 
 .canvasHistoryDock {
   position: absolute;

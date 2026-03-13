@@ -1,4 +1,33 @@
-export type Tool = 'restore' | 'eraser' | 'select' | 'text' | 'crop' | 'move'
+export type Tool = 'restore' | 'eraser' | 'select' | 'text' | 'crop' | 'move' | 'pen' | 'shape' | 'blur' | 'dodge' | 'eyedropper' | 'hand'
+
+export type DrawingStroke = {
+  id: string
+  points: number[]
+  strokeWidth: number
+  color: string
+  opacity: number
+}
+
+export type ShapeType = 'rect' | 'ellipse' | 'line' | 'arrow'
+
+export type ShapeItem = {
+  id: string
+  type: ShapeType
+  x: number
+  y: number
+  width: number
+  height: number
+  fill: string
+  stroke: string
+  strokeWidth: number
+  opacity: number
+  rotation: number
+  visible: boolean
+  locked: boolean
+}
+
+export type BlurMode = 'blur' | 'sharpen'
+export type DodgeMode = 'dodge' | 'burn'
 
 export type MaskStroke = {
   id: string
@@ -50,4 +79,6 @@ export type PageAsset = {
   maskStrokes: MaskStroke[]
   groups: LayerGroup[]
   texts: TextItem[]
+  drawings: DrawingStroke[]
+  shapes: ShapeItem[]
 }
