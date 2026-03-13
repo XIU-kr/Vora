@@ -25,10 +25,11 @@
   --control-h: 30px;
   --control-h-compact: 28px;
   --toolbar-w: 44px;
-  --sidebar-w: 272px;
+  --sidebar-w: 260px;
   --header-h: 38px;
-  --options-h: 40px;
-  --status-h: 26px;
+  --options-h: 36px;
+  --filmstrip-h: 58px;
+  --status-h: 24px;
 }
 
 @font-face {
@@ -44,13 +45,14 @@
   --motion-scale: 1;
   height: 100dvh;
   display: grid;
-  grid-template-rows: var(--header-h) var(--options-h) 1fr var(--status-h);
+  grid-template-rows: var(--header-h) var(--options-h) var(--filmstrip-h) 1fr var(--status-h);
   grid-template-columns: var(--toolbar-w) 1fr var(--sidebar-w);
   grid-template-areas:
-    "header  header  header"
-    "options options options"
-    "toolbar canvas  sidebar"
-    "status  status  status";
+    "header    header    header"
+    "options   options   options"
+    "filmstrip filmstrip filmstrip"
+    "toolbar   canvas    sidebar"
+    "status    status    status";
   overflow: hidden;
   color: var(--text);
   background: var(--bg-app);
@@ -59,6 +61,26 @@
 .app.animLow { --motion-scale: 0.72; }
 .app.animHigh { --motion-scale: 1.28; }
 .app.noSidebar {
+  grid-template-columns: var(--toolbar-w) 1fr;
+  grid-template-areas:
+    "header    header"
+    "options   options"
+    "filmstrip filmstrip"
+    "toolbar   canvas"
+    "status    status";
+}
+
+.app.noFilmstrip {
+  grid-template-rows: var(--header-h) var(--options-h) 1fr var(--status-h);
+  grid-template-areas:
+    "header  header  header"
+    "options options options"
+    "toolbar canvas  sidebar"
+    "status  status  status";
+}
+
+.app.noSidebar.noFilmstrip {
+  grid-template-rows: var(--header-h) var(--options-h) 1fr var(--status-h);
   grid-template-columns: var(--toolbar-w) 1fr;
   grid-template-areas:
     "header  header"
@@ -309,6 +331,142 @@
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+/* ─── Filmstrip ─── */
+.filmstrip {
+  grid-area: filmstrip;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 6px;
+  background: #141428;
+  border-bottom: 1px solid var(--stroke);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  z-index: 17;
+}
+
+.filmstrip::-webkit-scrollbar { height: 3px; }
+.filmstrip::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
+
+.filmstripThumb {
+  flex: 0 0 auto;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  margin: 0 2px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background: rgba(0,0,0,0.25);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 80ms ease, transform 80ms ease;
+}
+
+.filmstripThumb:hover {
+  border-color: rgba(255,255,255,0.2);
+  transform: scale(1.04);
+}
+
+.filmstripThumb.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-glow);
+}
+
+.filmstripThumb.selected {
+  border-color: var(--accent2);
+}
+
+.filmstripThumb.dragging { opacity: 0.4; transform: scale(0.95); }
+.filmstripThumb.dropTarget { border-color: var(--accent); background: rgba(108,140,255,0.15); }
+
+.filmstripThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.filmstripThumb .filmstripOrder {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+  color: #07231a;
+  background: var(--accent2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.filmstripThumb .filmstripRemove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0,0,0,0.6);
+  color: #ff9f9f;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.filmstripThumb:hover .filmstripRemove { display: inline-flex; }
+
+.filmstripAdd {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  margin: 0 2px;
+  border-radius: 4px;
+  border: 1px dashed rgba(255,255,255,0.15);
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 80ms ease, color 80ms ease;
+}
+
+.filmstripAdd:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(108,140,255,0.06);
+}
+
+.filmstripActions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid var(--stroke);
+  height: 32px;
+}
+
+.filmstripActions .btn {
+  min-height: 22px;
+  padding: 2px 6px;
+  font-size: 10px;
 }
 
 /* ─── Left toolbar ─── */
@@ -619,11 +777,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 7px 10px;
+  padding: 6px 10px;
   background: rgba(255, 255, 255, 0.02);
   border: none;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
   text-transform: uppercase;
@@ -644,13 +802,134 @@
 
 .accordionBody {
   display: none;
-  padding: 8px 10px;
+  padding: 6px 8px;
   max-height: 50vh;
   overflow-y: auto;
 }
 
 .accordionBody::-webkit-scrollbar { width: 3px; }
 .accordionBody::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
+
+/* ─── Photoshop-style property sections ─── */
+.propSection {
+  margin-bottom: 6px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.propSection:last-child { margin-bottom: 0; }
+
+.propSectionTitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 5px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.propRow {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.propRow:last-child { margin-bottom: 0; }
+
+.propLabel {
+  font-size: 10px;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.propValue {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.propValue .input,
+.propValue .select {
+  min-height: 24px;
+  height: 24px;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+.propValue .smoothRange {
+  height: 20px;
+  flex: 1;
+}
+
+.propValue .btn {
+  min-height: 24px;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.propInline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.propInline .input {
+  width: 52px;
+  min-height: 24px;
+  height: 24px;
+  text-align: right;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  padding: 2px 4px;
+}
+
+.propUnit {
+  font-size: 9px;
+  color: var(--faint);
+  min-width: 16px;
+}
+
+/* Compact button grid for property panels */
+.propBtnGrid {
+  display: grid;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.propBtnGrid.cols2 { grid-template-columns: 1fr 1fr; }
+.propBtnGrid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+.propBtnGrid.cols4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.propBtnGrid .btn {
+  min-height: 24px;
+  padding: 3px 4px;
+  font-size: 10px;
+}
+
+/* Compact action bar at bottom of sidebar */
+.sidebarActions {
+  padding: 6px 8px;
+  border-top: 1px solid var(--stroke);
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+.sidebarActions .btn {
+  min-height: 26px;
+  padding: 3px 8px;
+  font-size: 10px;
+  flex: 1;
+}
 
 /* ─── Status bar ─── */
 .statusBar {
@@ -2465,7 +2744,17 @@
 /* ─── Responsive ─── */
 @media (max-width: 980px) {
   .app {
+    grid-template-rows: var(--header-h) var(--options-h) var(--filmstrip-h) 1fr var(--status-h);
     grid-template-columns: var(--toolbar-w) 1fr;
+    grid-template-areas:
+      "header    header"
+      "options   options"
+      "filmstrip filmstrip"
+      "toolbar   canvas"
+      "status    status";
+  }
+  .app.noFilmstrip {
+    grid-template-rows: var(--header-h) var(--options-h) 1fr var(--status-h);
     grid-template-areas:
       "header  header"
       "options options"

@@ -2213,11 +2213,16 @@ function App() {
   const [preferredDevice, setPreferredDevice] = useState<'cpu' | 'cuda'>(() => {
     try {
       const saved = window.localStorage.getItem('vora-preferred-device-restore')
-      return saved === 'cuda' ? 'cuda' : 'cpu'
+      if (saved === 'cuda' || saved === 'cpu') return saved
+      // No saved preference — default will be resolved after cudaAvailable is known
+      return 'cpu'
     } catch {
       return 'cpu'
     }
   })
+  const hasExplicitDevicePref = (() => {
+    try { return window.localStorage.getItem('vora-preferred-device-restore') !== null } catch { return false }
+  })()
   const [autoSaveSeconds, setAutoSaveSeconds] = useState<number>(() => {
     try {
       const saved = Number(window.localStorage.getItem('vora-autosave-sec'))
@@ -2891,16 +2896,19 @@ function App() {
 
   useEffect(() => {
     if (preferredAppliedRef.current) return
-    if (aiRequestedDevice !== 'auto' && aiRequestedDevice === preferredDevice) {
+    // Auto-select GPU when available and user has no explicit saved preference
+    const effectiveDevice = (!hasExplicitDevicePref && cudaAvailable === true) ? 'cuda' : preferredDevice
+    if (aiRequestedDevice !== 'auto' && aiRequestedDevice === effectiveDevice) {
       preferredAppliedRef.current = true
       return
     }
-    if (preferredDevice === 'cuda' && cudaAvailable === false) {
+    if (effectiveDevice === 'cuda' && cudaAvailable === false) {
       preferredAppliedRef.current = true
       return
     }
+    if (cudaAvailable === null) return // wait for health check
     preferredAppliedRef.current = true
-    void setDeviceMode(preferredDevice)
+    void setDeviceMode(effectiveDevice)
   }, [aiRequestedDevice, preferredDevice, cudaAvailable])
 
   useEffect(() => {
@@ -6460,7 +6468,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
   }
 
   return (
-    <div className={`app ${uiDensity === 'compact' ? 'densityCompact' : ''} ${showShortcutTips ? '' : 'shortcutsOff'} ${tooltipDensity === 'detailed' ? 'tooltipDetailed' : 'tooltipSimple'} ${tooltipsMuted ? 'tooltipsMuted' : ''} ${animationStrength === 'low' ? 'animLow' : animationStrength === 'high' ? 'animHigh' : ''} ${assets.length === 0 ? 'noSidebar' : ''}`} onDragOver={onDragOverRoot} onDragLeave={onDragLeaveRoot} onDrop={onDropRoot}>
+    <div className={`app ${uiDensity === 'compact' ? 'densityCompact' : ''} ${showShortcutTips ? '' : 'shortcutsOff'} ${tooltipDensity === 'detailed' ? 'tooltipDetailed' : 'tooltipSimple'} ${tooltipsMuted ? 'tooltipsMuted' : ''} ${animationStrength === 'low' ? 'animLow' : animationStrength === 'high' ? 'animHigh' : ''} ${assets.length === 0 ? 'noSidebar noFilmstrip' : ''}`} onDragOver={onDragOverRoot} onDragLeave={onDragLeaveRoot} onDrop={onDropRoot}>
       {/* ═══ Header Bar ═══ */}
       <div className="headerBar">
         <div className="headerLeft">
@@ -6618,6 +6626,53 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           </div>
         ) : null}
       </div>
+
+      {/* ═══ Filmstrip ═══ */}
+      {assets.length > 0 ? (
+        <div className={`filmstrip ${guideFocusTarget === 'files' ? 'guideFlash' : ''}`}>
+          {assets.map((a) => (
+            <div
+              key={a.id}
+              ref={(node) => { assetCardRefs.current[a.id] = node }}
+              className={`filmstripThumb ${a.id === activeId ? 'active' : ''} ${selectedAssetIds.includes(a.id) ? 'selected' : ''} ${a.id === flashAssetId ? 'flash' : ''} ${a.id === dragAssetId ? 'dragging' : ''} ${a.id === dragOverAssetId && a.id !== dragAssetId ? 'dropTarget' : ''}`}
+              onClick={(e) => onAssetCardClick(e, a.id)}
+              title={`${a.name} (${a.width}×${a.height})`}
+              draggable
+              onDragStart={(e) => onAssetDragStart(e, a.id)}
+              onDragEnter={(e) => onAssetDragEnter(e, a.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => onAssetDrop(e, a.id)}
+              onDragEnd={() => { setDragAssetId(null); setDragOverAssetId(null) }}
+            >
+              <img src={a.baseDataUrl} alt={a.name} loading="lazy" decoding="async" />
+              {selectedAssetIds.includes(a.id) ? <span className="filmstripOrder">{selectedAssetIds.indexOf(a.id) + 1}</span> : null}
+              <button className="filmstripRemove" onClick={(e) => { e.stopPropagation(); removeAsset(a.id) }} title={ui.removeAsset} aria-label={ui.removeAsset}>×</button>
+            </div>
+          ))}
+          <label className="filmstripAdd" title={ui.import}>
+            +
+            <input
+              type="file"
+              multiple
+              accept="image/*,application/pdf,.pdf"
+              onChange={(e) => void handleFiles(e.target.files)}
+              style={{ display: 'none' }}
+            />
+          </label>
+          {assets.length > 1 ? (
+            <div className="filmstripActions">
+              <button className="btn ghost" onClick={() => setSelectedAssetIds(assets.map((a) => a.id))} disabled={assets.length === 0}>{ui.selectAllFiles}</button>
+              <button className="btn ghost" onClick={() => setSelectedAssetIds([])} disabled={selectedAssetIds.length === 0}>{ui.unselectAllFiles}</button>
+              <button className="btn ghost danger" onClick={clearAllAssets} disabled={assets.length === 0 || !!busy}>{ui.clearAllAssets}</button>
+              {selectedAssetIds.length > 0 ? (
+                <button className="selectionCountBadge" onClick={() => scrollToAsset(selectedAssetIds[0]!)} title={ui.selectionHint}>
+                  {ui.selectedFilesCount(selectedAssetIds.length)}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {pendingAutoRestore ? (
         <div className="restorePrompt" role="dialog" aria-modal="true">
@@ -7591,56 +7646,6 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         {/* ═══ Right Sidebar ═══ */}
         {assets.length > 0 ? (
         <div className="rightSidebar">
-        {/* ── Files accordion ── */}
-        <div className={`accordionSection ${accordionState.files ? 'expanded' : ''} ${guideFocusTarget === 'files' ? 'guideFlash' : ''}`}>
-          <button className="accordionHeader" onClick={() => toggleAccordion('files')}>
-            {ui.files} {assets.length > 0 ? `(${assets.length})` : ''}
-            <span className="accordionChevron">{accordionState.files ? '▾' : '▸'}</span>
-          </button>
-          {accordionState.files ? (
-            <div className="accordionBody">
-              <div className="assetList">
-                {assets.map((a) => (
-                  <div
-                    key={a.id}
-                    ref={(node) => { assetCardRefs.current[a.id] = node }}
-                    className={`asset ${a.id === activeId ? 'active' : ''} ${selectedAssetIds.includes(a.id) ? 'selected' : ''} ${a.id === flashAssetId ? 'flash' : ''} ${a.id === dragAssetId ? 'dragging' : ''} ${a.id === dragOverAssetId && a.id !== dragAssetId ? 'dropTarget' : ''}`}
-                    onClick={(e) => onAssetCardClick(e, a.id)}
-                    draggable
-                    onDragStart={(e) => onAssetDragStart(e, a.id)}
-                    onDragEnter={(e) => onAssetDragEnter(e, a.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => onAssetDrop(e, a.id)}
-                    onDragEnd={() => { setDragAssetId(null); setDragOverAssetId(null) }}
-                  >
-                    <img className="thumb" src={a.baseDataUrl} alt={a.name} loading="lazy" decoding="async" />
-                    <div className="assetMeta">
-                      <div className="assetTopRow">
-                        <div className="assetName">
-                          {a.name}
-                          {selectedAssetIds.includes(a.id) ? <span className="assetOrderBadge">{selectedAssetIds.indexOf(a.id) + 1}</span> : null}
-                        </div>
-                        <button className="assetRemoveBtn" onClick={(e) => { e.stopPropagation(); removeAsset(a.id) }} title={ui.removeAsset} aria-label={ui.removeAsset}>×</button>
-                      </div>
-                      <div className="assetSub">{ui.assetMeta(a.width, a.height, a.texts.length)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="assetListFooter">
-                <button className="btn ghost" onClick={() => setSelectedAssetIds(assets.map((a) => a.id))} disabled={assets.length === 0}>{ui.selectAllFiles}</button>
-                <button className="btn ghost" onClick={() => setSelectedAssetIds([])} disabled={selectedAssetIds.length === 0}>{ui.unselectAllFiles}</button>
-                <button className="btn ghost" onClick={invertAssetSelection} disabled={assets.length === 0}>{ui.invertSelection}</button>
-                <button className="btn ghost danger" onClick={clearAllAssets} disabled={assets.length === 0 || !!busy}>{ui.clearAllAssets}</button>
-                {selectedAssetIds.length > 0 ? (
-                  <button className="selectionCountBadge" onClick={() => scrollToAsset(selectedAssetIds[0]!)} title={ui.selectionHint}>
-                    {ui.selectedFilesCount(selectedAssetIds.length)}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-        </div>
 
         {/* ── Properties accordion ── */}
         <div className={`accordionSection ${accordionState.properties ? 'expanded' : ''}`}>
@@ -7651,234 +7656,277 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           {accordionState.properties ? (
             <div className="accordionBody">
             {tool !== 'text' ? (
-            <div className="row toolRow">
-              <div className="label">{ui.toolOptions}</div>
-
+            <>
               {tool === 'restore' ? (
                 <>
-                  <div className="label">{ui.brushSize}</div>
-                  <div className="brushControlRow">
-                    <input
-                      className="input smoothRange"
-                      type="range"
-                      min={0}
-                      max={BRUSH_SLIDER_MAX}
-                      step={1}
-                      value={brushSliderValue}
-                      onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))}
-                    />
-                    <input
-                      className="input brushSizeInput"
-                      type="number"
-                      min={BRUSH_MIN}
-                      max={BRUSH_MAX}
-                      value={brushSize}
-                      onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))}
-                    />
-                  </div>
-                  <div className="hint">{brushSize}px · {ui.restoreHint}</div>
-                  <div className="macroControls">
-                    <div>
-                      <div className="label">{ui.macroCount}</div>
-                      <input
-                        className="input macroCountInput"
-                        type="number"
-                        min={1}
-                        max={10}
-                        value={macroRepeatCount}
-                        onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))}
-                      />
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.brushSize}</div>
+                    <div className="propRow">
+                      <span className="propLabel">Size</span>
+                      <div className="propValue">
+                        <input
+                          className="input smoothRange"
+                          type="range"
+                          min={0}
+                          max={BRUSH_SLIDER_MAX}
+                          step={1}
+                          value={brushSliderValue}
+                          onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))}
+                        />
+                        <div className="propInline">
+                          <input
+                            className="input"
+                            type="number"
+                            min={BRUSH_MIN}
+                            max={BRUSH_MAX}
+                            value={brushSize}
+                            onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))}
+                          />
+                          <span className="propUnit">px</span>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      className="btn primary macroRunBtn"
-                      disabled={!!busy}
-                      onClick={() => void runMacroWithConfirm('restore', 'all')}
-                    >
-                      {macroRunningTool === 'restore' && macroRunningMode === 'all' ? ui.macroRunningAll : ui.macroRunAll}
-                    </button>
-                    <button
-                      className="btn macroRunBtn"
-                      disabled={!!busy || !hasSelectedAssets}
-                      onClick={() => void runMacroWithConfirm('restore', 'selected')}
-                    >
-                      {macroRunningTool === 'restore' && macroRunningMode === 'selected' ? ui.macroRunningSelected : ui.macroRunSelected}
-                    </button>
+                    <div className="hint">{ui.restoreHint}</div>
                   </div>
-                  <div className="hint">{ui.macroHint} {ui.macroSelectHint}</div>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.macroCount}</div>
+                    <div className="propRow">
+                      <span className="propLabel">Repeat</span>
+                      <div className="propValue">
+                        <input
+                          className="input"
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={macroRepeatCount}
+                          onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))}
+                          style={{ width: 52 }}
+                        />
+                      </div>
+                    </div>
+                    <div className="propBtnGrid cols2">
+                      <button className="btn primary" disabled={!!busy} onClick={() => void runMacroWithConfirm('restore', 'all')}>
+                        {macroRunningTool === 'restore' && macroRunningMode === 'all' ? ui.macroRunningAll : ui.macroRunAll}
+                      </button>
+                      <button className="btn" disabled={!!busy || !hasSelectedAssets} onClick={() => void runMacroWithConfirm('restore', 'selected')}>
+                        {macroRunningTool === 'restore' && macroRunningMode === 'selected' ? ui.macroRunningSelected : ui.macroRunSelected}
+                      </button>
+                    </div>
+                    <div className="hint">{ui.macroHint}</div>
+                  </div>
                 </>
               ) : null}
 
               {tool === 'eraser' ? (
                 <>
-                  <div className="label">{ui.brushSize}</div>
-                  <div className="brushControlRow">
-                    <input
-                      className="input smoothRange"
-                      type="range"
-                      min={0}
-                      max={BRUSH_SLIDER_MAX}
-                      step={1}
-                      value={brushSliderValue}
-                      onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))}
-                    />
-                    <input
-                      className="input brushSizeInput"
-                      type="number"
-                      min={BRUSH_MIN}
-                      max={BRUSH_MAX}
-                      value={brushSize}
-                      onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))}
-                    />
-                  </div>
-                  <div className="hint">{brushSize}px · {ui.eraserHint}</div>
-                  <div className="macroControls">
-                    <div>
-                      <div className="label">{ui.macroCount}</div>
-                      <input
-                        className="input macroCountInput"
-                        type="number"
-                        min={1}
-                        max={10}
-                        value={macroRepeatCount}
-                        onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))}
-                      />
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.brushSize}</div>
+                    <div className="propRow">
+                      <span className="propLabel">Size</span>
+                      <div className="propValue">
+                        <input
+                          className="input smoothRange"
+                          type="range"
+                          min={0}
+                          max={BRUSH_SLIDER_MAX}
+                          step={1}
+                          value={brushSliderValue}
+                          onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))}
+                        />
+                        <div className="propInline">
+                          <input
+                            className="input"
+                            type="number"
+                            min={BRUSH_MIN}
+                            max={BRUSH_MAX}
+                            value={brushSize}
+                            onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))}
+                          />
+                          <span className="propUnit">px</span>
+                        </div>
+                      </div>
                     </div>
-                    <button
-                      className="btn primary macroRunBtn"
-                      disabled={!!busy}
-                      onClick={() => void runMacroWithConfirm('eraser', 'all')}
-                    >
-                      {macroRunningTool === 'eraser' && macroRunningMode === 'all' ? ui.macroRunningAll : ui.macroRunAll}
-                    </button>
-                    <button
-                      className="btn macroRunBtn"
-                      disabled={!!busy || !hasSelectedAssets}
-                      onClick={() => void runMacroWithConfirm('eraser', 'selected')}
-                    >
-                      {macroRunningTool === 'eraser' && macroRunningMode === 'selected' ? ui.macroRunningSelected : ui.macroRunSelected}
-                    </button>
+                    <div className="hint">{ui.eraserHint}</div>
                   </div>
-                  <div className="hint">{ui.macroHint} {ui.macroSelectHint}</div>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.macroCount}</div>
+                    <div className="propRow">
+                      <span className="propLabel">Repeat</span>
+                      <div className="propValue">
+                        <input
+                          className="input"
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={macroRepeatCount}
+                          onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))}
+                          style={{ width: 52 }}
+                        />
+                      </div>
+                    </div>
+                    <div className="propBtnGrid cols2">
+                      <button className="btn primary" disabled={!!busy} onClick={() => void runMacroWithConfirm('eraser', 'all')}>
+                        {macroRunningTool === 'eraser' && macroRunningMode === 'all' ? ui.macroRunningAll : ui.macroRunAll}
+                      </button>
+                      <button className="btn" disabled={!!busy || !hasSelectedAssets} onClick={() => void runMacroWithConfirm('eraser', 'selected')}>
+                        {macroRunningTool === 'eraser' && macroRunningMode === 'selected' ? ui.macroRunningSelected : ui.macroRunSelected}
+                      </button>
+                    </div>
+                    <div className="hint">{ui.macroHint}</div>
+                  </div>
                 </>
               ) : null}
 
               {tool === 'move' && active ? (
                 <>
-                  <div className="label">{ui.imageTransform}</div>
-                  <div className="buttonRow">
-                    <button className="btn" disabled={!!busy} onClick={() => void rotateImage(90)}>↻ 90°</button>
-                    <button className="btn" disabled={!!busy} onClick={() => void rotateImage(270)}>↺ 90°</button>
-                    <button className="btn" disabled={!!busy} onClick={() => void rotateImage(180)}>180°</button>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.imageTransform}</div>
+                    <div className="propBtnGrid cols3">
+                      <button className="btn" disabled={!!busy} onClick={() => void rotateImage(90)}>↻ 90°</button>
+                      <button className="btn" disabled={!!busy} onClick={() => void rotateImage(270)}>↺ 90°</button>
+                      <button className="btn" disabled={!!busy} onClick={() => void rotateImage(180)}>180°</button>
+                    </div>
+                    <div className="propBtnGrid cols2" style={{ marginTop: 3 }}>
+                      <button className="btn" disabled={!!busy} onClick={() => void flipImage('h')}>{ui.flipH}</button>
+                      <button className="btn" disabled={!!busy} onClick={() => void flipImage('v')}>{ui.flipV}</button>
+                    </div>
                   </div>
-                  <div className="buttonRow">
-                    <button className="btn" disabled={!!busy} onClick={() => void flipImage('h')}>{ui.flipH}</button>
-                    <button className="btn" disabled={!!busy} onClick={() => void flipImage('v')}>{ui.flipV}</button>
-                  </div>
-                  <div className="label">{ui.imageResize}</div>
-                  <div className="buttonRow">
-                    <input type="number" min={1} value={resizeWidth} onChange={(e) => {
-                      const v = Number(e.target.value)
-                      setResizeWidth(v)
-                      if (resizeLockAspect && active) setResizeHeight(Math.round(v * (active.height / active.width)))
-                    }} style={{ width: 64 }} />
-                    <span>×</span>
-                    <input type="number" min={1} value={resizeHeight} onChange={(e) => {
-                      const v = Number(e.target.value)
-                      setResizeHeight(v)
-                      if (resizeLockAspect && active) setResizeWidth(Math.round(v * (active.width / active.height)))
-                    }} style={{ width: 64 }} />
-                    <button className="btn" title={ui.lockAspect} onClick={() => setResizeLockAspect((p) => !p)}>
-                      {resizeLockAspect ? '🔒' : '🔓'}
-                    </button>
-                  </div>
-                  <div className="buttonRow">
-                    <button className="btn primary" disabled={!!busy} onClick={() => void applyResize()}>{ui.applyResize}</button>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.imageResize}</div>
+                    <div className="propRow">
+                      <span className="propLabel">W</span>
+                      <div className="propValue">
+                        <input className="input" type="number" min={1} value={resizeWidth} onChange={(e) => {
+                          const v = Number(e.target.value)
+                          setResizeWidth(v)
+                          if (resizeLockAspect && active) setResizeHeight(Math.round(v * (active.height / active.width)))
+                        }} style={{ width: 72 }} />
+                        <span className="propUnit">px</span>
+                      </div>
+                    </div>
+                    <div className="propRow">
+                      <span className="propLabel">H</span>
+                      <div className="propValue">
+                        <input className="input" type="number" min={1} value={resizeHeight} onChange={(e) => {
+                          const v = Number(e.target.value)
+                          setResizeHeight(v)
+                          if (resizeLockAspect && active) setResizeWidth(Math.round(v * (active.width / active.height)))
+                        }} style={{ width: 72 }} />
+                        <span className="propUnit">px</span>
+                        <button className="btn" title={ui.lockAspect} onClick={() => setResizeLockAspect((p) => !p)} style={{ minWidth: 28, padding: '2px 4px' }}>
+                          {resizeLockAspect ? '🔒' : '🔓'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="propBtnGrid cols2">
+                      <button className="btn primary" disabled={!!busy} onClick={() => void applyResize()}>{ui.applyResize}</button>
+                    </div>
                   </div>
                 </>
               ) : null}
 
               {tool === 'select' ? (
                 <>
-                  <div className="buttonRow">
-                    <button className={`btn ${selectMode === 'ai' ? 'active' : ''}`} onClick={() => setSelectMode('ai')}>{ui.selectModeAI}</button>
-                    <button className={`btn ${selectMode === 'rect' ? 'active' : ''}`} onClick={() => setSelectMode('rect')}>{ui.selectModeRect}</button>
-                    <button className={`btn ${selectMode === 'ellipse' ? 'active' : ''}`} onClick={() => setSelectMode('ellipse')}>{ui.selectModeEllipse}</button>
-                    <button className={`btn ${selectMode === 'lasso' ? 'active' : ''}`} onClick={() => setSelectMode('lasso')}>{ui.selectModeLasso}</button>
+                  <div className="propSection">
+                    <div className="propSectionTitle">Mode</div>
+                    <div className="propBtnGrid cols4">
+                      <button className={`btn ${selectMode === 'ai' ? 'active' : ''}`} onClick={() => setSelectMode('ai')}>{ui.selectModeAI}</button>
+                      <button className={`btn ${selectMode === 'rect' ? 'active' : ''}`} onClick={() => setSelectMode('rect')}>{ui.selectModeRect}</button>
+                      <button className={`btn ${selectMode === 'ellipse' ? 'active' : ''}`} onClick={() => setSelectMode('ellipse')}>{ui.selectModeEllipse}</button>
+                      <button className={`btn ${selectMode === 'lasso' ? 'active' : ''}`} onClick={() => setSelectMode('lasso')}>{ui.selectModeLasso}</button>
+                    </div>
+                    <div className="propBtnGrid cols2" style={{ marginTop: 4 }}>
+                      <button className="btn primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
+                    </div>
+                    <div className="hint" style={{ marginTop: 3 }}>{selectionMaskDataUrl ? ui.selectionToolHintHasSelection : ui.selectionToolHint}</div>
+                    {selectionMaskBounds ? <div className="hint">{ui.aiPreviewArea}: {selectionMaskBounds.width} x {selectionMaskBounds.height}</div> : null}
                   </div>
-                  <div className="buttonRow">
-                    <button className="btn primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
+                  <div className="propSection">
+                    <div className="propSectionTitle">Actions</div>
+                    <div className="propBtnGrid cols2">
+                      <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('eraseSelection')}>{ui.selectionActionErase}</button>
+                      <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('transparentBackground')}>{ui.selectionActionTransparentBg}</button>
+                    </div>
+                    <div className="propRow" style={{ marginTop: 4 }}>
+                      <span className="propLabel">Fill</span>
+                      <div className="propValue">
+                        <label className="quickColor" title={ui.selectionFillColor} aria-label={ui.selectionFillColor}>
+                          <input type="color" value={selectionFillColor} onChange={(e) => setSelectionFillColor(e.target.value)} />
+                        </label>
+                        <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('fillBackground')}>{ui.selectionActionFillBg}</button>
+                      </div>
+                    </div>
+                    <input
+                      ref={selectionBackgroundInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e) => void onSelectionBackgroundImageChange(e.target.files)}
+                    />
+                    <div className="propBtnGrid cols2" style={{ marginTop: 4 }}>
+                      <button className="btn" onClick={() => selectionBackgroundInputRef.current?.click()}>{ui.selectionPickBackgroundImage}</button>
+                      <button className="btn" disabled={!!busy || !selectionMaskDataUrl || !selectionBackgroundImageUrl} onClick={() => void applySelectionAction('replaceBackground')}>{ui.selectionActionReplaceBg}</button>
+                    </div>
+                    {selectionBackgroundImageUrl ? <div className="hint">{ui.selectionBackgroundImageReady}</div> : null}
+                    <div className="propBtnGrid cols2" style={{ marginTop: 4 }}>
+                      <button className="btn primary" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('restoreSelection')}>{ui.selectionActionRestore}</button>
+                      <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => { setSelectionMaskDataUrl(null); setSelectionMaskBounds(null); setSelectionBackgroundImageUrl(null); setAntsDashOffset(0); }}>{ui.selectionActionClear}</button>
+                    </div>
                   </div>
-                  <div className="hint">{selectionMaskDataUrl ? ui.selectionToolHintHasSelection : ui.selectionToolHint}</div>
-                  <div className="hint">
-                    {ui.aiPreviewArea}: {selectionMaskBounds ? `${selectionMaskBounds.width} x ${selectionMaskBounds.height}` : '-'}
-                  </div>
-                  <div className="buttonRow">
-                    <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('eraseSelection')}>{ui.selectionActionErase}</button>
-                    <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('transparentBackground')}>{ui.selectionActionTransparentBg}</button>
-                  </div>
-                  <div className="label">{ui.selectionFillColor}</div>
-                  <div className="buttonRow">
-                    <label className="quickColor" title={ui.selectionFillColor} aria-label={ui.selectionFillColor}>
-                      <input type="color" value={selectionFillColor} onChange={(e) => setSelectionFillColor(e.target.value)} />
-                    </label>
-                    <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('fillBackground')}>{ui.selectionActionFillBg}</button>
-                  </div>
-                  <input
-                    ref={selectionBackgroundInputRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={(e) => void onSelectionBackgroundImageChange(e.target.files)}
-                  />
-                  <div className="buttonRow">
-                    <button className="btn" onClick={() => selectionBackgroundInputRef.current?.click()}>{ui.selectionPickBackgroundImage}</button>
-                    <button className="btn" disabled={!!busy || !selectionMaskDataUrl || !selectionBackgroundImageUrl} onClick={() => void applySelectionAction('replaceBackground')}>{ui.selectionActionReplaceBg}</button>
-                  </div>
-                  {selectionBackgroundImageUrl ? <div className="hint">{ui.selectionBackgroundImageReady}</div> : null}
-                  <div className="buttonRow">
-                    <button className="btn primary" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('restoreSelection')}>{ui.selectionActionRestore}</button>
-                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => { setSelectionMaskDataUrl(null); setSelectionMaskBounds(null); setSelectionBackgroundImageUrl(null); setAntsDashOffset(0); }}>{ui.selectionActionClear}</button>
-                  </div>
-                  <div className="label">{ui.selectionModify}</div>
-                  <div className="buttonRow">
-                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void invertSelection()}>{ui.selectionInvert}</button>
-                  </div>
-                  <div className="buttonRow">
-                    <input type="number" min={1} max={50} value={expandContractRadius} onChange={(e) => setExpandContractRadius(Number(e.target.value))} style={{ width: 48 }} />
-                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'expand')}>{ui.selectionExpand}</button>
-                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'contract')}>{ui.selectionContract}</button>
-                  </div>
-                  <div className="buttonRow">
-                    <input type="number" min={1} max={50} value={featherRadius} onChange={(e) => setFeatherRadius(Number(e.target.value))} style={{ width: 48 }} />
-                    <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void featherSelection(featherRadius)}>{ui.selectionFeather}</button>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.selectionModify}</div>
+                    <div className="propBtnGrid cols2">
+                      <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void invertSelection()}>{ui.selectionInvert}</button>
+                    </div>
+                    <div className="propRow" style={{ marginTop: 4 }}>
+                      <span className="propLabel">Radius</span>
+                      <div className="propValue">
+                        <input className="input" type="number" min={1} max={50} value={expandContractRadius} onChange={(e) => setExpandContractRadius(Number(e.target.value))} style={{ width: 48 }} />
+                        <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'expand')}>{ui.selectionExpand}</button>
+                        <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'contract')}>{ui.selectionContract}</button>
+                      </div>
+                    </div>
+                    <div className="propRow">
+                      <span className="propLabel">Feather</span>
+                      <div className="propValue">
+                        <input className="input" type="number" min={1} max={50} value={featherRadius} onChange={(e) => setFeatherRadius(Number(e.target.value))} style={{ width: 48 }} />
+                        <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void featherSelection(featherRadius)}>{ui.selectionFeather}</button>
+                      </div>
+                    </div>
                   </div>
                 </>
               ) : null}
 
               {(tool === 'restore' || tool === 'eraser') && pendingMaskAction && pendingMaskAction.assetId === active?.id && pendingMaskAction.tool === tool ? (
-                <div className="aiPreviewCard">
-                  <div className="label">{ui.aiPreviewTitle}</div>
+                <div className="propSection" style={{ borderColor: 'rgba(108,140,255,0.25)', background: 'rgba(108,140,255,0.04)' }}>
+                  <div className="propSectionTitle">{ui.aiPreviewTitle}</div>
                   <div className="hint">{ui.aiPreviewConfirm}</div>
-                  <div className="label">{ui.aiPreviewScope}</div>
-                  <select className="select" value={maskApplyScope} onChange={(e) => setMaskApplyScope(e.target.value as MaskApplyScope)}>
-                    <option value="full">{ui.aiPreviewScopeFull}</option>
-                    <option value="crop">{ui.aiPreviewScopeCrop}</option>
-                  </select>
-                  {maskApplyScope === 'crop' && !activeCropRect ? <div className="hint">{ui.aiPreviewNoCrop}</div> : null}
-                  <div className="label">{ui.aiPreviewMaskOpacity}</div>
-                  <input
-                    className="input smoothRange"
-                    type="range"
-                    min={10}
-                    max={100}
-                    step={1}
-                    value={Math.round(maskPreviewOpacity * 100)}
-                    onChange={(e) => setMaskPreviewOpacity(clamp(Number(e.target.value) / 100, 0.1, 1))}
-                  />
-                  <div className="hint">
-                    {ui.aiPreviewArea}: {pendingMaskBounds ? `${pendingMaskBounds.width} x ${pendingMaskBounds.height}` : '-'}
+                  <div className="propRow">
+                    <span className="propLabel">Scope</span>
+                    <div className="propValue">
+                      <select className="select" value={maskApplyScope} onChange={(e) => setMaskApplyScope(e.target.value as MaskApplyScope)}>
+                        <option value="full">{ui.aiPreviewScopeFull}</option>
+                        <option value="crop">{ui.aiPreviewScopeCrop}</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="buttonRow">
+                  {maskApplyScope === 'crop' && !activeCropRect ? <div className="hint">{ui.aiPreviewNoCrop}</div> : null}
+                  <div className="propRow">
+                    <span className="propLabel">Opacity</span>
+                    <div className="propValue">
+                      <input
+                        className="input smoothRange"
+                        type="range"
+                        min={10}
+                        max={100}
+                        step={1}
+                        value={Math.round(maskPreviewOpacity * 100)}
+                        onChange={(e) => setMaskPreviewOpacity(clamp(Number(e.target.value) / 100, 0.1, 1))}
+                      />
+                    </div>
+                  </div>
+                  {pendingMaskBounds ? <div className="hint">{ui.aiPreviewArea}: {pendingMaskBounds.width} x {pendingMaskBounds.height}</div> : null}
+                  <div className="propBtnGrid cols2">
                     <button className="btn primary" disabled={!!busy || !pendingMaskBounds} onClick={() => void applyPendingMaskAction()}>{ui.aiPreviewApply}</button>
                     <button className="btn" disabled={!!busy} onClick={cancelPendingMaskAction}>{ui.aiPreviewCancel}</button>
                   </div>
@@ -7886,8 +7934,8 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
               ) : null}
 
               {tool === 'crop' ? (
-                <>
-                  <div className="label">{ui.cropSelection}</div>
+                <div className="propSection">
+                  <div className="propSectionTitle">{ui.cropSelection}</div>
                   <div className="cropGrid">
                     <div>
                       <div className="label">{ui.cropX}</div>
@@ -8009,10 +8057,10 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                       <div className="hint">{ui.cropCompareControlHint} · {ui.cropCompareDoubleClickHint}</div>
                     </div>
                   ) : null}
-                </>
+                </div>
               ) : null}
 
-            </div>
+            </>
             ) : null}
 
             {tool !== 'eraser' && tool !== 'restore' && tool !== 'select' ? (
