@@ -1447,6 +1447,22 @@ const UI = {
     restorePromptRestore: '복원하기',
     restorePromptDiscard: '건너뛰기',
     settingsName: 'XIU-kr',
+    propSize: '크기',
+    propBatch: '일괄 처리',
+    propRepeat: '반복',
+    propMode: '모드',
+    propQuickActions: '빠른 작업',
+    propSelectionActions: '선택 작업',
+    propFill: '채우기',
+    propInvert: '반전',
+    propExpand: '확장',
+    propFeather: '페더',
+    propScope: '범위',
+    propOpacity: '불투명도',
+    propFont: '글꼴',
+    propPreset: '프리셋',
+    propColor: '색상',
+    propBgAlpha: '배경 투명도',
   },
   en: {
     tag: 'Image/PDF editor',
@@ -1899,6 +1915,22 @@ const UI = {
     restorePromptRestore: 'Restore',
     restorePromptDiscard: 'Skip',
     settingsName: 'XIU-kr',
+    propSize: 'Size',
+    propBatch: 'Batch',
+    propRepeat: 'Repeat',
+    propMode: 'Mode',
+    propQuickActions: 'Quick Actions',
+    propSelectionActions: 'Selection Actions',
+    propFill: 'Fill',
+    propInvert: 'Invert',
+    propExpand: 'Expand',
+    propFeather: 'Feather',
+    propScope: 'Scope',
+    propOpacity: 'Opacity',
+    propFont: 'Font',
+    propPreset: 'Preset',
+    propColor: 'Color',
+    propBgAlpha: 'BG Opacity',
   },
 } as const
 
@@ -7663,16 +7695,16 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   <div className="propSection">
                     <div className="propSectionTitle">{ui.brushSize}</div>
                     <div className="propSliderRow">
-                      <span className="propLabel">Size</span>
+                      <span className="propLabel">{ui.propSize}</span>
                       <input className="input smoothRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
                       <span className="propSliderVal">{brushSize}px</span>
                     </div>
                     <div className="hint">{ui.restoreHint}</div>
                   </div>
                   <div className="propSection">
-                    <div className="propSectionTitle">Batch</div>
+                    <div className="propSectionTitle">{ui.propBatch}</div>
                     <div className="propRow">
-                      <span className="propLabel">Repeat</span>
+                      <span className="propLabel">{ui.propRepeat}</span>
                       <div className="propValue">
                         <input className="input" type="number" min={1} max={10} value={macroRepeatCount} onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))} style={{ width: 44 }} />
                       </div>
@@ -7696,16 +7728,16 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   <div className="propSection">
                     <div className="propSectionTitle">{ui.brushSize}</div>
                     <div className="propSliderRow">
-                      <span className="propLabel">Size</span>
+                      <span className="propLabel">{ui.propSize}</span>
                       <input className="input smoothRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
                       <span className="propSliderVal">{brushSize}px</span>
                     </div>
                     <div className="hint">{ui.eraserHint}</div>
                   </div>
                   <div className="propSection">
-                    <div className="propSectionTitle">Batch</div>
+                    <div className="propSectionTitle">{ui.propBatch}</div>
                     <div className="propRow">
-                      <span className="propLabel">Repeat</span>
+                      <span className="propLabel">{ui.propRepeat}</span>
                       <div className="propValue">
                         <input className="input" type="number" min={1} max={10} value={macroRepeatCount} onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))} style={{ width: 44 }} />
                       </div>
@@ -7769,7 +7801,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
               {tool === 'select' ? (
                 <>
                   <div className="propSection">
-                    <div className="propSectionTitle">Mode</div>
+                    <div className="propSectionTitle">{ui.propMode}</div>
                     <div className="propBtnGrid cols4">
                       <button className={`btn ${selectMode === 'ai' ? 'active' : ''}`} onClick={() => setSelectMode('ai')}>{ui.selectModeAI}</button>
                       <button className={`btn ${selectMode === 'rect' ? 'active' : ''}`} onClick={() => setSelectMode('rect')}>{ui.selectModeRect}</button>
@@ -7780,20 +7812,20 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     {selectionMaskBounds ? <div className="propInfoChip">{selectionMaskBounds.width} × {selectionMaskBounds.height}</div> : null}
                   </div>
                   <div className="propSection">
-                    <div className="propSectionTitle">Quick Actions</div>
+                    <div className="propSectionTitle">{ui.propQuickActions}</div>
                     <div className="propBtnGrid cols2">
                       <button className="btn primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
                       <button className="btn primary" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('restoreSelection')}>{ui.selectionActionRestore}</button>
                     </div>
                   </div>
                   <div className="propSection">
-                    <div className="propSectionTitle">Selection Actions</div>
+                    <div className="propSectionTitle">{ui.propSelectionActions}</div>
                     <div className="propBtnGrid cols2">
                       <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('eraseSelection')}>{ui.selectionActionErase}</button>
                       <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('transparentBackground')}>{ui.selectionActionTransparentBg}</button>
                     </div>
                     <div className="propRow">
-                      <span className="propLabel">Fill</span>
+                      <span className="propLabel">{ui.propFill}</span>
                       <div className="propValue">
                         <div className="propSwatch" data-label={ui.selectionFillColor}>
                           <span className="propSwatchFill" style={{ background: selectionFillColor }} />
@@ -7815,13 +7847,13 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   <div className="propSection">
                     <div className="propSectionTitle">{ui.selectionModify}</div>
                     <div className="propRow">
-                      <span className="propLabel">Invert</span>
+                      <span className="propLabel">{ui.propInvert}</span>
                       <div className="propValue">
                         <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void invertSelection()}>{ui.selectionInvert}</button>
                       </div>
                     </div>
                     <div className="propRow">
-                      <span className="propLabel">Expand</span>
+                      <span className="propLabel">{ui.propExpand}</span>
                       <div className="propValue">
                         <input className="input" type="number" min={1} max={50} value={expandContractRadius} onChange={(e) => setExpandContractRadius(Number(e.target.value))} style={{ width: 44 }} />
                         <span className="propUnit">px</span>
@@ -7830,7 +7862,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                       </div>
                     </div>
                     <div className="propRow">
-                      <span className="propLabel">Feather</span>
+                      <span className="propLabel">{ui.propFeather}</span>
                       <div className="propValue">
                         <input className="input" type="number" min={1} max={50} value={featherRadius} onChange={(e) => setFeatherRadius(Number(e.target.value))} style={{ width: 44 }} />
                         <span className="propUnit">px</span>
@@ -7847,7 +7879,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   <div className="propSectionTitle">{ui.aiPreviewTitle}</div>
                   <div className="hint">{ui.aiPreviewConfirm}</div>
                   <div className="propRow">
-                    <span className="propLabel">Scope</span>
+                    <span className="propLabel">{ui.propScope}</span>
                     <div className="propValue">
                       <select className="select" value={maskApplyScope} onChange={(e) => setMaskApplyScope(e.target.value as MaskApplyScope)}>
                         <option value="full">{ui.aiPreviewScopeFull}</option>
@@ -7857,7 +7889,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   </div>
                   {maskApplyScope === 'crop' && !activeCropRect ? <div className="hint">{ui.aiPreviewNoCrop}</div> : null}
                   <div className="propSliderRow">
-                    <span className="propLabel">Opacity</span>
+                    <span className="propLabel">{ui.propOpacity}</span>
                     <input className="input smoothRange" type="range" min={10} max={100} step={1} value={Math.round(maskPreviewOpacity * 100)} onChange={(e) => setMaskPreviewOpacity(clamp(Number(e.target.value) / 100, 0.1, 1))} />
                     <span className="propSliderVal">{Math.round(maskPreviewOpacity * 100)}%</span>
                   </div>
@@ -7989,7 +8021,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 <div className="propSection">
                   <div className="propSectionTitle">{ui.selectedText}</div>
                   <div className="propRow">
-                    <span className="propLabel">Font</span>
+                    <span className="propLabel">{ui.propFont}</span>
                     <div className="propValue">
                       <input
                         id="text-font-search-panel"
@@ -8004,7 +8036,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     </div>
                   </div>
                   <div className="propRow">
-                    <span className="propLabel">Preset</span>
+                    <span className="propLabel">{ui.propPreset}</span>
                     <div className="propValue">
                       <select
                         id="text-font-preset-panel"
@@ -8053,7 +8085,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
               {/* ── Text: Colors ── */}
               {selectedText ? (
                 <div className="propSection">
-                  <div className="propSectionTitle">Color</div>
+                  <div className="propSectionTitle">{ui.propColor}</div>
                   <div className="propSwatchRow">
                     <label className="propSwatch" title={ui.textColor} aria-label={ui.textColor}>
                       <input type="color" value={selectedText.fill} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ fill: e.target.value })} />
@@ -8072,7 +8104,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     </label>
                   </div>
                   <div className="propSliderRow" style={{ marginTop: 4 }}>
-                    <span className="propLabel">BG α</span>
+                    <span className="propLabel">{ui.propBgAlpha}</span>
                     <input
                       className="smoothRange"
                       type="range"
