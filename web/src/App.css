@@ -22,14 +22,14 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   --radius: 6px;
   --radius-sm: 4px;
-  --control-h: 30px;
-  --control-h-compact: 28px;
+  --control-h: 32px;
+  --control-h-compact: 30px;
   --toolbar-w: 44px;
-  --sidebar-w: 260px;
-  --header-h: 38px;
-  --options-h: 36px;
-  --filmstrip-h: 58px;
-  --status-h: 24px;
+  --sidebar-w: 280px;
+  --header-h: 42px;
+  --options-h: 40px;
+  --filmstrip-h: 62px;
+  --status-h: 28px;
 }
 
 @font-face {
@@ -135,7 +135,7 @@
 }
 
 .brand .tag {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -171,7 +171,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -205,13 +205,13 @@
 }
 
 .deviceEngineTag {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   color: #8af7c9;
 }
 
 .deviceAvailability {
-  font-size: 9px;
+  font-size: 11px;
   border-radius: 999px;
   padding: 0 5px;
   height: 16px;
@@ -239,7 +239,7 @@
   border: 1px solid rgba(255, 174, 66, 0.35);
   background: rgba(255, 174, 66, 0.1);
   color: #ffe5bd;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
@@ -282,7 +282,7 @@
 }
 
 .optionsLabel {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
   flex-shrink: 0;
@@ -291,7 +291,7 @@
 .optionsBar .btn {
   min-height: 26px;
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .optionsBar .input,
@@ -299,7 +299,7 @@
   min-height: 26px;
   height: 26px;
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: 13px;
   min-width: 0;
   width: auto;
 }
@@ -328,7 +328,7 @@
   border-radius: 999px;
   background: var(--accent-glow);
   color: #cdd8ff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -398,7 +398,7 @@
   height: 14px;
   padding: 0 3px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 800;
   color: #07231a;
   background: var(--accent2);
@@ -418,7 +418,7 @@
   border: none;
   background: rgba(0,0,0,0.6);
   color: #ff9f9f;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1;
   cursor: pointer;
   display: none;
@@ -466,7 +466,7 @@
 .filmstripActions .btn {
   min-height: 22px;
   padding: 2px 6px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 /* ─── Left toolbar ─── */
@@ -521,7 +521,7 @@
   top: 50%;
   transform: translateY(-50%);
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
   color: #e0eaff;
   background: rgba(14, 14, 30, 0.96);
@@ -624,7 +624,7 @@
   border: 1px solid var(--stroke);
   background: rgba(14, 14, 30, 0.8);
   color: #e0eaff;
-  font-size: 10px;
+  font-size: 12px;
   height: 26px;
   padding: 0 8px;
   border-radius: 999px;
@@ -662,7 +662,7 @@
   border: 1px solid var(--stroke);
   background: transparent;
   color: #e0eaff;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
 }
@@ -670,7 +670,7 @@
 .guideCardClose:hover { background: rgba(255, 255, 255, 0.08); }
 
 .guideTitle {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   color: #e0f0ff;
   margin-bottom: 6px;
@@ -715,7 +715,7 @@
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   color: #d8e6ff;
   background: var(--accent-glow);
@@ -725,13 +725,13 @@
 }
 
 .guideContent { min-width: 0; }
-.guideStep p { margin: 0; font-size: 10px; line-height: 1.3; color: rgba(230, 240, 255, 0.85); }
+.guideStep p { margin: 0; font-size: 12px; line-height: 1.3; color: rgba(230, 240, 255, 0.85); }
 
 .guideMeta {
   margin-top: 3px;
   display: inline-flex;
   align-items: center;
-  font-size: 9px;
+  font-size: 11px;
   color: rgba(180, 200, 240, 0.8);
   background: rgba(108, 140, 255, 0.08);
   border: 1px solid rgba(108, 140, 255, 0.18);
@@ -781,7 +781,7 @@
   background: rgba(255, 255, 255, 0.02);
   border: none;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   text-transform: uppercase;
@@ -796,7 +796,7 @@
 }
 
 .accordionChevron {
-  font-size: 10px;
+  font-size: 12px;
   transition: transform 120ms ease;
 }
 
@@ -822,7 +822,7 @@
 .propSection:last-child { border-bottom: none; padding-bottom: 0; }
 
 .propSectionTitle {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
@@ -833,24 +833,24 @@
 /* Row: label–value pair, Photoshop-style 2-column */
 .propRow {
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 56px 1fr;
   gap: 0 6px;
   align-items: center;
-  min-height: 22px;
+  min-height: 26px;
   margin-bottom: 2px;
 }
 
 .propRow:last-child { margin-bottom: 0; }
 
 .propLabel {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.45);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: default;
   user-select: none;
-  line-height: 22px;
+  line-height: 26px;
 }
 
 .propValue {
@@ -863,9 +863,9 @@
 /* All inputs inside property values — Photoshop-compact */
 .propValue .input,
 .propValue .select {
-  min-height: 22px;
-  height: 22px;
-  font-size: 11px;
+  min-height: 26px;
+  height: 26px;
+  font-size: 13px;
   padding: 0 5px;
   border-color: rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.25);
@@ -909,9 +909,9 @@
 }
 
 .propValue .btn {
-  min-height: 22px;
+  min-height: 26px;
   padding: 0 6px;
-  font-size: 10px;
+  font-size: 12px;
   border-radius: 3px;
 }
 
@@ -928,7 +928,7 @@
   min-height: 22px;
   height: 22px;
   text-align: right;
-  font-size: 11px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   padding: 0 4px;
   border-color: rgba(255, 255, 255, 0.06);
@@ -937,7 +937,7 @@
 }
 
 .propUnit {
-  font-size: 9px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.3);
   min-width: 14px;
   user-select: none;
@@ -958,9 +958,9 @@
 .propBtnGrid.cols7 { grid-template-columns: repeat(7, 1fr); }
 
 .propBtnGrid .btn {
-  min-height: 22px;
-  padding: 2px 3px;
-  font-size: 10px;
+  min-height: 26px;
+  padding: 3px 4px;
+  font-size: 12px;
   border-radius: 3px;
   border-color: rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
@@ -981,23 +981,23 @@
 /* Photoshop-style linked dimension fields (W/H with chain) */
 .propDimRow {
   display: grid;
-  grid-template-columns: 52px 1fr 20px 1fr 22px;
+  grid-template-columns: 56px 1fr 20px 1fr 24px;
   gap: 0 3px;
   align-items: center;
-  min-height: 22px;
+  min-height: 26px;
 }
 
 .propDimRow .propDimLabel {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.4);
   text-align: right;
   padding-right: 2px;
 }
 
 .propDimRow .propDimInput {
-  min-height: 22px;
-  height: 22px;
-  font-size: 11px;
+  min-height: 26px;
+  height: 26px;
+  font-size: 13px;
   padding: 0 4px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -1012,20 +1012,20 @@
 }
 
 .propDimSep {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.25);
   text-align: center;
   user-select: none;
 }
 
 .propLinkBtn {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 3px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: transparent;
   color: rgba(255, 255, 255, 0.35);
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1046,8 +1046,8 @@
 }
 
 .propSwatch {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   border-radius: 3px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
@@ -1072,7 +1072,7 @@
   bottom: calc(100% + 4px);
   left: 50%;
   transform: translateX(-50%);
-  font-size: 9px;
+  font-size: 11px;
   color: #c0d0e8;
   background: rgba(10, 10, 24, 0.95);
   border: 1px solid var(--stroke);
@@ -1094,7 +1094,7 @@
 }
 
 .propSwatchLabel {
-  font-size: 9px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
   user-select: none;
 }
@@ -1102,16 +1102,16 @@
 /* Slider with integrated value display */
 .propSliderRow {
   display: grid;
-  grid-template-columns: 52px 1fr 36px;
+  grid-template-columns: 56px 1fr 40px;
   gap: 0 4px;
   align-items: center;
-  min-height: 22px;
+  min-height: 26px;
 }
 
-.propSliderRow .propLabel { line-height: 22px; }
+.propSliderRow .propLabel { line-height: 26px; }
 
 .propSliderVal {
-  font-size: 10px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -1131,14 +1131,14 @@
 .sidebarActions .btn {
   min-height: 24px;
   padding: 3px 8px;
-  font-size: 10px;
+  font-size: 12px;
   flex: 1;
 }
 
 /* Hint text inside property sections */
 .propSection .hint {
   margin-top: 3px;
-  font-size: 9px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.28);
   line-height: 1.3;
 }
@@ -1147,12 +1147,12 @@
 .propInfoChip {
   display: inline-flex;
   align-items: center;
-  height: 18px;
-  padding: 0 5px;
+  height: 22px;
+  padding: 0 6px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.2);
-  font-size: 9px;
+  font-size: 12px;
   color: rgba(255, 255, 255, 0.45);
   font-variant-numeric: tabular-nums;
 }
@@ -1189,13 +1189,13 @@
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
-  padding: 3px 6px;
+  padding: 4px 7px;
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.7);
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
   text-align: left;
 }
@@ -1205,7 +1205,7 @@
 }
 
 .propLayerIndex {
-  font-size: 9px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.3);
   font-weight: 600;
   min-width: 18px;
@@ -1220,7 +1220,7 @@
 }
 
 .propLayerTag {
-  font-size: 8px;
+  font-size: 10px;
   padding: 0 3px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.06);
@@ -1247,12 +1247,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.4);
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
   border-radius: 2px;
   transition: background 0.1s, color 0.1s;
@@ -1277,7 +1277,7 @@
   padding: 0 10px;
   background: var(--bg-status);
   border-top: 1px solid var(--stroke);
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   gap: 12px;
   z-index: 16;
@@ -1301,7 +1301,7 @@
   border: none;
   background: transparent;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
   padding: 0;
 }
@@ -1397,7 +1397,7 @@
 .assetName {
   flex: 1;
   min-width: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   overflow: hidden;
   white-space: nowrap;
@@ -1413,7 +1413,7 @@
   height: 16px;
   padding: 0 4px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
   color: #07231a;
   background: #8af7db;
 }
@@ -1426,7 +1426,7 @@
   border: 1px solid rgba(255, 107, 107, 0.25);
   background: transparent;
   color: #ffd8d8;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
   display: inline-flex;
@@ -1441,7 +1441,7 @@
 }
 
 .assetSub {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -1450,7 +1450,7 @@
   align-items: center;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 12px;
   color: #bff5e7;
   background: rgba(46, 163, 130, 0.18);
   border: 1px solid rgba(80, 213, 173, 0.3);
@@ -1465,12 +1465,12 @@
   padding-top: 6px;
 }
 
-.assetListFooter .btn { font-size: 10px; padding: 3px 6px; min-height: 22px; }
+.assetListFooter .btn { font-size: 12px; padding: 3px 6px; min-height: 22px; }
 
 .footerHint {
   width: 100%;
   text-align: center;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--faint);
 }
 
@@ -1489,7 +1489,7 @@
   padding: 6px 10px;
   border-radius: var(--radius);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 80ms ease, border-color 80ms ease;
@@ -1507,7 +1507,7 @@
 .btn.ghost {
   min-height: 26px;
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: 13px;
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
 }
@@ -1528,7 +1528,7 @@
   color: var(--text);
   padding: 6px 8px;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.2;
   box-sizing: border-box;
 }
@@ -1610,12 +1610,12 @@
 .toolRow { gap: 5px; margin-bottom: 6px; padding: 6px; }
 
 .label {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted);
 }
 
 .hint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--faint);
   line-height: 1.3;
 }
@@ -1648,7 +1648,7 @@
 
 .macroRunBtn {
   min-height: var(--control-h);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .aiPreviewCard {
@@ -1769,7 +1769,7 @@
   border: 1px solid rgba(108, 140, 255, 0.3);
   background: rgba(14, 14, 30, 0.88);
   color: rgba(220, 235, 255, 0.9);
-  font-size: 9px;
+  font-size: 11px;
   white-space: nowrap;
 }
 
@@ -1777,7 +1777,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .cropPreviewMetaRow {
@@ -1794,7 +1794,7 @@
   border: 1px solid rgba(108, 140, 255, 0.2);
   background: rgba(14, 14, 30, 0.5);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .cropCompareSlider { width: 100%; }
@@ -1807,11 +1807,11 @@
 }
 
 .cropCompareInput { text-align: right; padding-right: 6px; }
-.cropCompareValue { font-size: 10px; color: var(--muted); text-align: right; min-width: 32px; }
+.cropCompareValue { font-size: 12px; color: var(--muted); text-align: right; min-width: 32px; }
 
 /* ─── Text editing controls ─── */
 .textToolRow { gap: 4px; }
-.textToolRow .label { font-size: 10px; }
+.textToolRow .label { font-size: 12px; }
 .textOptionGroup {
   padding: 6px;
   border-radius: var(--radius);
@@ -1825,14 +1825,14 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 3px;
 }
-.alignToggleRow .btn { min-height: 26px; font-size: 10px; padding: 4px; }
+.alignToggleRow .btn { min-height: 26px; font-size: 12px; padding: 4px; }
 
 .weightPresetRow {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 3px;
 }
-.weightPresetRow .btn { min-height: 26px; padding: 4px 6px; font-size: 10px; }
+.weightPresetRow .btn { min-height: 26px; padding: 4px 6px; font-size: 12px; }
 
 .textItalicBtn {
   width: 100%;
@@ -1845,7 +1845,7 @@
   gap: 4px;
 }
 
-.textToolActions .btn { font-size: 10px; padding: 4px; min-height: 26px; }
+.textToolActions .btn { font-size: 12px; padding: 4px; min-height: 26px; }
 
 .textFormatRow {
   display: grid;
@@ -1895,7 +1895,7 @@
   border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.04);
   color: #dff1ff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -1907,7 +1907,7 @@
   min-width: 0;
   height: 26px;
   padding: 0 8px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .quickFontPreset {
@@ -1915,7 +1915,7 @@
   min-width: 0;
   height: 26px;
   padding: 0 8px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* ─── Text quick bar (floating on canvas) ─── */
@@ -1953,7 +1953,7 @@
   border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.05);
   color: #ddf0ff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   cursor: grab;
   box-sizing: border-box;
@@ -1969,7 +1969,7 @@
   border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.05);
   color: #ddf0ff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   cursor: pointer;
   box-sizing: border-box;
@@ -1988,7 +1988,7 @@
   border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
   padding: 0;
@@ -2039,7 +2039,7 @@
   width: 22px;
   height: 18px;
   border-radius: var(--radius-sm);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   background: rgba(255, 255, 255, 0.08);
 }
@@ -2050,7 +2050,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .layerMain {
@@ -2080,7 +2080,7 @@
   height: 16px;
   padding: 0 5px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   border: 1px solid var(--stroke);
 }
@@ -2110,7 +2110,7 @@
   cursor: pointer;
   text-align: left;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .historyRow.active .historyItem,
@@ -2119,8 +2119,8 @@
   background: rgba(108, 140, 255, 0.12);
 }
 
-.historyIndex { font-size: 10px; color: var(--muted); }
-.historyLabel { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.historyIndex { font-size: 12px; color: var(--muted); }
+.historyLabel { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .historyHeaderActions {
   display: grid;
@@ -2132,7 +2132,7 @@
 .historySearchInput {
   min-height: 26px;
   padding: 4px 6px;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 /* ─── Empty state ─── */
@@ -2205,8 +2205,8 @@
   overflow: auto;
 }
 
-.dialogTitle { font-size: 13px; font-weight: 700; }
-.dialogHint { font-size: 11px; color: var(--muted); }
+.dialogTitle { font-size: 15px; font-weight: 700; }
+.dialogHint { font-size: 13px; color: var(--muted); }
 .dialogActions { display: flex; justify-content: flex-end; gap: 6px; }
 
 .dropOverlay {
@@ -2229,7 +2229,7 @@
   box-shadow: var(--shadow);
   padding: 12px 14px;
   text-align: center;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -2268,7 +2268,7 @@
   padding: 0 10px;
   cursor: pointer;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .settingsCloseBtn:hover { border-color: var(--stroke-active); background: var(--accent-glow); }
@@ -2280,7 +2280,7 @@
   gap: 10px;
 }
 
-.settingsTitle { font-size: 12px; font-weight: 800; margin: 0; color: #e0f0ff; }
+.settingsTitle { font-size: 14px; font-weight: 800; margin: 0; color: #e0f0ff; }
 
 .settingsLayout {
   display: grid;
@@ -2320,7 +2320,7 @@
   border: 1px solid var(--stroke);
   background: transparent;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
@@ -2329,10 +2329,10 @@
 
 .settingsTab:hover { border-color: var(--stroke-active); background: var(--accent-glow); color: var(--text); }
 .settingsTab.active { border-color: var(--stroke-active); background: var(--accent-glow); color: var(--text); }
-.settingsTabIcon { margin-right: 4px; font-size: 11px; opacity: 0.8; }
+.settingsTabIcon { margin-right: 4px; font-size: 13px; opacity: 0.8; }
 
 .settingsRow { display: grid; gap: 4px; margin-top: 0; }
-.settingsLabel { font-size: 10px; color: var(--muted); }
+.settingsLabel { font-size: 12px; color: var(--muted); }
 .settingsLangSelect { min-width: 0; width: 100%; }
 
 .settingsInline {
@@ -2349,7 +2349,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   color: #dff0ff;
 }
 
@@ -2363,7 +2363,7 @@
   padding: 8px;
 }
 
-.settingsInfoTitle { font-size: 10px; font-weight: 800; color: #deefff; margin-bottom: 5px; }
+.settingsInfoTitle { font-size: 12px; font-weight: 800; color: #deefff; margin-bottom: 5px; }
 
 .settingsInfoRow {
   display: grid;
@@ -2371,7 +2371,7 @@
   gap: 6px;
   margin-top: 4px;
   align-items: center;
-  font-size: 11px;
+  font-size: 13px;
   color: #e0f0ff;
 }
 
@@ -2408,8 +2408,8 @@
 }
 
 .settingsLinkCard:hover { border-color: var(--stroke-active); background: var(--accent-glow); }
-.settingsLinkLabel { font-size: 10px; font-weight: 800; color: #e0f0ff; }
-.settingsLinkUrl { font-size: 9px; color: var(--faint); word-break: break-word; }
+.settingsLinkLabel { font-size: 12px; font-weight: 800; color: #e0f0ff; }
+.settingsLinkUrl { font-size: 11px; color: var(--faint); word-break: break-word; }
 
 .settingsActionRow { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 
@@ -2423,7 +2423,7 @@
   color: #edf4ff;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   padding: 0 28px 0 10px;
   background-image:
@@ -2460,7 +2460,7 @@
   gap: 6px;
 }
 
-.restorePromptTitle { font-size: 12px; font-weight: 800; color: #e0f0ff; }
+.restorePromptTitle { font-size: 14px; font-weight: 800; color: #e0f0ff; }
 .restorePromptActions { margin-top: 4px; display: flex; justify-content: flex-end; gap: 6px; }
 
 /* ─── Toast / progress ─── */
@@ -2478,7 +2478,7 @@
   background: linear-gradient(180deg, rgba(22, 22, 48, 0.96), rgba(18, 18, 38, 0.94));
   box-shadow: var(--shadow);
   color: var(--text);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.3;
   animation: toast-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
   display: inline-flex;
@@ -2486,7 +2486,7 @@
   gap: 6px;
 }
 
-.toastTime { margin-left: 6px; font-size: 10px; color: var(--muted); }
+.toastTime { margin-left: 6px; font-size: 12px; color: var(--muted); }
 
 .statusIcon {
   width: 16px;
@@ -2495,7 +2495,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   background: rgba(255, 255, 255, 0.08);
   color: #f0f8ff;
@@ -2534,7 +2534,7 @@
   to { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 
-.progressTitle { font-size: 12px; font-weight: 800; margin-bottom: 6px; color: #e0f0ff; display: inline-flex; align-items: center; gap: 6px; }
+.progressTitle { font-size: 14px; font-weight: 800; margin-bottom: 6px; color: #e0f0ff; display: inline-flex; align-items: center; gap: 6px; }
 
 .progressBarWrap {
   height: 8px;
@@ -2555,7 +2555,7 @@
   animation: progress-indeterminate 1s ease-in-out infinite;
 }
 
-.progressMeta { margin-top: 5px; font-size: 10px; color: var(--muted); text-align: right; }
+.progressMeta { margin-top: 5px; font-size: 12px; color: var(--muted); text-align: right; }
 .progressActions { margin-top: 8px; display: flex; justify-content: flex-end; }
 
 @keyframes progress-indeterminate {
@@ -2590,7 +2590,7 @@
 }
 
 .activityPanelTitle {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   color: #e0f0ff;
 }
@@ -2604,8 +2604,8 @@
   min-width: 0;
 }
 
-.activitySaveScope { min-width: 120px; height: 26px; font-size: 10px; }
-.activityPanelActions .btn { min-width: 0; padding: 0 8px; min-height: 24px; font-size: 10px; }
+.activitySaveScope { min-width: 120px; height: 26px; font-size: 12px; }
+.activityPanelActions .btn { min-width: 0; padding: 0 8px; min-height: 24px; font-size: 12px; }
 .activityPanelTitleRow .activityPanelTitle { padding: 0; border: 0; background: transparent; }
 
 .activityFilterRow {
@@ -2633,7 +2633,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -2681,7 +2681,7 @@
 
 .activityText {
   min-width: 0;
-  font-size: 11px;
+  font-size: 13px;
   color: #e0f0ff;
   display: inline-flex;
   align-items: center;
@@ -2700,12 +2700,12 @@
   border: 1px solid rgba(108, 140, 255, 0.25);
   background: rgba(108, 140, 255, 0.1);
   color: #c0d8ff;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   flex-shrink: 0;
 }
 
-.activityTime { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.activityTime { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .activityCopyItemBtn {
   display: inline-flex;
@@ -2717,7 +2717,7 @@
   border: 1px solid var(--stroke);
   background: transparent;
   color: #ddf0ff;
-  font-size: 10px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -2748,7 +2748,7 @@
   display: flex;
   justify-content: space-between;
   pointer-events: none;
-  font-size: 9px;
+  font-size: 11px;
   color: #e0f0ff;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
@@ -2781,7 +2781,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--faint);
   white-space: nowrap;
 }
@@ -2812,7 +2812,7 @@
 
 .shortcutsKey {
   padding: 6px 8px;
-  font-size: 11px;
+  font-size: 13px;
   color: #c0d8ff;
   background: rgba(108, 140, 255, 0.08);
   border-right: 1px solid var(--stroke);
@@ -2820,7 +2820,7 @@
 
 .shortcutsDesc {
   padding: 6px 8px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--text);
   background: var(--bg-panel-section);
 }
@@ -2833,7 +2833,7 @@
   gap: 4px;
 }
 
-.shortcutsCategoryRow .tabBtn { height: 26px; font-size: 10px; }
+.shortcutsCategoryRow .tabBtn { height: 26px; font-size: 12px; }
 
 .shortcutsKeyBtn { appearance: none; cursor: pointer; }
 .shortcutsKeyBtn:hover { border-color: var(--stroke-active); background: var(--accent-glow); }
@@ -2861,7 +2861,7 @@
   border: 1px solid rgba(108, 140, 255, 0.2);
   background: rgba(108, 140, 255, 0.06);
   color: #d0e0ff;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .exportPresetRow {
@@ -2877,12 +2877,12 @@
   border-radius: var(--radius-sm);
   background: var(--bg-panel-section);
   padding: 5px 8px;
-  font-size: 10px;
+  font-size: 12px;
   color: #d0e0ff;
 }
 
 .presetBtn { min-height: 38px; display: grid; gap: 2px; justify-items: center; }
-.presetHint { font-size: 9px; color: var(--faint); }
+.presetHint { font-size: 11px; color: var(--faint); }
 
 /* ─── Tab buttons ─── */
 .tabBtn {
@@ -2896,7 +2896,7 @@
   justify-content: center;
   padding: 0 6px;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   box-sizing: border-box;
@@ -2915,7 +2915,7 @@
   border: 1px solid transparent;
   background: transparent;
   color: #e0f0ff;
-  font-size: 11px;
+  font-size: 13px;
   text-align: left;
   padding: 0 8px;
   cursor: pointer;
@@ -2926,7 +2926,7 @@
 .menuItem:disabled { opacity: 0.4; cursor: default; }
 
 /* ─── Canvas context menu ─── */
-.ctrlIcon { font-size: 11px; }
+.ctrlIcon { font-size: 13px; }
 .ctrlLabel { white-space: nowrap; }
 
 /* ─── Mobile quick rail ─── */
@@ -2962,7 +2962,7 @@
 .mobileOrderList { display: grid; gap: 4px; }
 .mobileOrderRow { display: flex; align-items: center; justify-content: space-between; gap: 6px; cursor: grab; }
 .mobileOrderRow.dragging { opacity: 0.5; }
-.mobileOrderName { font-size: 11px; color: #ddf0ff; }
+.mobileOrderName { font-size: 13px; color: #ddf0ff; }
 .mobileOrderActions { display: inline-flex; gap: 4px; }
 
 .settingsMobileQuickActions { margin-top: 4px; }
@@ -2975,7 +2975,7 @@
   color: #ffd9d9;
   border-radius: var(--radius);
   padding: 6px 8px;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
@@ -2989,7 +2989,7 @@
   color: #ffeec8;
   border-radius: var(--radius);
   padding: 6px 8px;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
@@ -3056,7 +3056,7 @@
   border: 1px solid var(--stroke);
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -3141,7 +3141,7 @@
   bottom: calc(100% + 6px);
   transform: translate(-50%, 4px) scale(0.96);
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   color: #e0f0ff;
   background: rgba(14, 14, 30, 0.97);
@@ -3217,7 +3217,7 @@
   border: 1px solid var(--stroke);
   background: rgba(16, 23, 34, 0.9);
   color: #ecf6ff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 0 8px;
 }
@@ -3227,7 +3227,7 @@
 
 /* Device detail text */
 .deviceValue {
-  font-size: 10px;
+  font-size: 12px;
   color: #f0f8ff;
   padding: 0 5px;
   height: 16px;
@@ -3238,7 +3238,7 @@
 }
 
 .deviceStatus { color: var(--muted); }
-.deviceDetailText { font-size: 10px; color: var(--muted); margin-left: 6px; }
+.deviceDetailText { font-size: 12px; color: var(--muted); margin-left: 6px; }
 
 /* ─── Text option mode tabs ─── */
 .textOptionModeTabs {
