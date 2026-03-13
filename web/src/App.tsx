@@ -18,13 +18,15 @@ import {
   faSun,
   faDroplet,
   faEyeDropper,
+  faImage,
+  faSliders,
   faWandMagicSparkles,
 } from '@fortawesome/free-solid-svg-icons'
 import { jsPDF } from 'jspdf'
 import PptxGenJS from 'pptxgenjs'
 
 import './App.css'
-import type { BlurMode, DodgeMode, DrawingStroke, LayerGroup, MaskStroke, PageAsset, ShapeItem, ShapeType, TextItem, Tool } from './lib/types'
+import type { BlurMode, DodgeMode, DrawingStroke, ImageAdjustments, ImageLayerItem, LayerGroup, MaskStroke, PageAsset, ShapeItem, ShapeType, TextItem, Tool } from './lib/types'
 import { importImageFile, importPdfFile } from './lib/importers'
 import { inpaintViaApi, segmentPointViaApi } from './lib/api'
 import { dataUrlToBlob, downloadBlob } from './lib/download'
@@ -562,6 +564,16 @@ async function renderAssetToDataUrl(
 
   layer.add(new Konva.Image({ image: baseImg, x: 0, y: 0, width: asset.width, height: asset.height }))
 
+  // Render image layers
+  for (const il of (asset.imageLayers ?? [])) {
+    if (!il.visible) continue
+    const ilImg = await loadHtmlImage(il.dataUrl)
+    layer.add(new Konva.Image({
+      image: ilImg, x: il.x, y: il.y, width: il.width, height: il.height,
+      opacity: il.opacity, rotation: il.rotation, listening: false,
+    }))
+  }
+
   // Render drawings
   for (const d of (asset.drawings ?? [])) {
     layer.add(new Konva.Line({
@@ -648,6 +660,17 @@ async function renderAssetToDataUrl(
   const dataUrl = stage.toDataURL({ pixelRatio, mimeType, quality })
   stage.destroy()
   return dataUrl
+}
+
+const DEFAULT_ADJUSTMENTS: ImageAdjustments = {
+  brightness: 0,
+  contrast: 0,
+  saturation: 0,
+  temperature: 0,
+  exposure: 0,
+  highlights: 0,
+  shadows: 0,
+  vibrance: 0,
 }
 
 const DEFAULT_TEXT: Omit<TextItem, 'id' | 'x' | 'y'> = {
@@ -1553,6 +1576,32 @@ const UI = {
     historyDodge: '닷지/번',
     historyClearDrawings: '그리기 전체 삭제',
     historyClearShapes: '도형 전체 삭제',
+    toolAdjust: '화질 조정',
+    modeAdjust: '모드: 화질 조정',
+    adjustBrightness: '밝기',
+    adjustContrast: '대비',
+    adjustSaturation: '채도',
+    adjustTemperature: '색온도',
+    adjustExposure: '노출',
+    adjustHighlights: '하이라이트',
+    adjustShadows: '그림자',
+    adjustVibrance: '생동감',
+    adjustAutoEnhance: '자동 보정',
+    adjustReset: '초기화',
+    adjustApply: '적용',
+    adjustHint: '슬라이더를 조정하여 화질을 개선합니다. 적용을 눌러 이미지에 반영합니다.',
+    adjustAutoHint: '자동 보정이 적용되었습니다.',
+    historyAdjust: '화질 조정',
+    historyAutoEnhance: '자동 보정',
+    imageLayer: '이미지 레이어',
+    imageLayerAdd: '이미지 추가',
+    imageLayerRemove: '레이어 삭제',
+    imageLayerOpacity: '불투명도',
+    imageLayerFlatten: '레이어 병합',
+    imageLayerHint: '이미지를 추가하여 레이어를 구성합니다.',
+    historyAddImageLayer: '이미지 레이어 추가',
+    historyRemoveImageLayer: '이미지 레이어 삭제',
+    historyFlattenImageLayers: '이미지 레이어 병합',
   },
   en: {
     tag: 'Image/PDF editor',
@@ -2064,6 +2113,32 @@ const UI = {
     historyDodge: 'Dodge/Burn',
     historyClearDrawings: 'Clear All Drawings',
     historyClearShapes: 'Clear All Shapes',
+    toolAdjust: 'Adjustments',
+    modeAdjust: 'Mode: Adjustments',
+    adjustBrightness: 'Brightness',
+    adjustContrast: 'Contrast',
+    adjustSaturation: 'Saturation',
+    adjustTemperature: 'Temperature',
+    adjustExposure: 'Exposure',
+    adjustHighlights: 'Highlights',
+    adjustShadows: 'Shadows',
+    adjustVibrance: 'Vibrance',
+    adjustAutoEnhance: 'Auto Enhance',
+    adjustReset: 'Reset',
+    adjustApply: 'Apply',
+    adjustHint: 'Adjust sliders to enhance image quality. Press Apply to commit.',
+    adjustAutoHint: 'Auto enhancement applied.',
+    historyAdjust: 'Adjust Image',
+    historyAutoEnhance: 'Auto Enhance',
+    imageLayer: 'Image Layers',
+    imageLayerAdd: 'Add Image',
+    imageLayerRemove: 'Remove Layer',
+    imageLayerOpacity: 'Opacity',
+    imageLayerFlatten: 'Flatten Layers',
+    imageLayerHint: 'Add images as overlay layers.',
+    historyAddImageLayer: 'Add Image Layer',
+    historyRemoveImageLayer: 'Remove Image Layer',
+    historyFlattenImageLayers: 'Flatten Image Layers',
   },
 } as const
 
@@ -2181,6 +2256,8 @@ function App() {
   const [dodgeStrength, setDodgeStrength] = useState(20)
   const dodgeDrawing = useRef<MaskStroke | null>(null)
   const [eyedropperColor, setEyedropperColor] = useState('#000000')
+  const [tempAdjustments, setTempAdjustments] = useState<ImageAdjustments>({ ...DEFAULT_ADJUSTMENTS })
+  const imageLayerInputRef = useRef<HTMLInputElement>(null)
   const [pendingMaskAction, setPendingMaskAction] = useState<PendingMaskAction | null>(null)
   const [maskApplyScope, setMaskApplyScope] = useState<MaskApplyScope>('full')
   const [maskPreviewOpacity, setMaskPreviewOpacity] = useState(0.58)
@@ -2495,6 +2572,31 @@ function App() {
   const [cropHoverHandle, setCropHoverHandle] = useState<CropHandle | null>(null)
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
   const [editingValue, setEditingValue] = useState('')
+  const [loadedImageLayers, setLoadedImageLayers] = useState<Record<string, HTMLImageElement>>({})
+
+  // Load image layer HTMLImageElements when they change
+  useEffect(() => {
+    const layers = active?.imageLayers ?? []
+    const newLoaded: Record<string, HTMLImageElement> = {}
+    let mounted = true
+    Promise.all(layers.map((l) => {
+      if (loadedImageLayers[l.id]) {
+        newLoaded[l.id] = loadedImageLayers[l.id]!
+        return Promise.resolve()
+      }
+      return new Promise<void>((resolve) => {
+        const img = new Image()
+        img.onload = () => { if (mounted) newLoaded[l.id] = img; resolve() }
+        img.onerror = () => resolve()
+        img.src = l.dataUrl
+      })
+    })).then(() => {
+      if (mounted) setLoadedImageLayers(newLoaded)
+    })
+    return () => { mounted = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.imageLayers])
+
   const [brushCursor, setBrushCursor] = useState<{ x: number; y: number; visible: boolean }>({
     x: 0,
     y: 0,
@@ -3766,6 +3868,11 @@ function App() {
         setTool('hand')
         return
       }
+      if (key === 'j') {
+        e.preventDefault()
+        setTool('adjust')
+        return
+      }
       if ((key === 'delete' || key === 'backspace') && selectedText) {
         if (selectedText.locked) return
         e.preventDefault()
@@ -3831,6 +3938,8 @@ function App() {
               texts: [],
               drawings: [],
               shapes: [],
+              imageLayers: [],
+              adjustments: { ...DEFAULT_ADJUSTMENTS },
             })
           }
         } else if (file.type.startsWith('image/')) {
@@ -3846,6 +3955,8 @@ function App() {
             texts: [],
             drawings: [],
             shapes: [],
+            imageLayers: [],
+            adjustments: { ...DEFAULT_ADJUSTMENTS },
           })
         }
       }
@@ -3876,6 +3987,8 @@ function App() {
       texts: asset.texts.map((text) => ({ ...text })),
       drawings: (asset.drawings ?? []).map((d) => ({ ...d, points: [...d.points] })),
       shapes: (asset.shapes ?? []).map((s) => ({ ...s })),
+      imageLayers: (asset.imageLayers ?? []).map((il) => ({ ...il })),
+      adjustments: { ...(asset.adjustments ?? DEFAULT_ADJUSTMENTS) },
     }
   }
 
@@ -4723,6 +4836,179 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     else if (pointer.y >= wrapSize.h - edge) dy = -7
     if (dx === 0 && dy === 0) return
     setCanvasOffset((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
+  }
+
+  function applyAdjustmentsToImage(adj: ImageAdjustments): void {
+    if (!active) return
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = active.width; canvas.height = active.height
+      const ctx = canvas.getContext('2d')!
+
+      // Apply CSS filter-equivalent adjustments
+      const brightness = 1 + adj.brightness / 100
+      const contrast = 1 + adj.contrast / 100
+      const saturate = 1 + adj.saturation / 100
+      ctx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`
+      ctx.drawImage(img, 0, 0)
+      ctx.filter = 'none'
+
+      // Apply temperature, exposure, highlights, shadows, vibrance via pixel manipulation
+      const needsPixelWork = adj.temperature !== 0 || adj.exposure !== 0 || adj.highlights !== 0 || adj.shadows !== 0 || adj.vibrance !== 0
+      if (needsPixelWork) {
+        const imageData = ctx.getImageData(0, 0, active.width, active.height)
+        const d = imageData.data
+        for (let i = 0; i < d.length; i += 4) {
+          let r = d[i]!, g = d[i + 1]!, b = d[i + 2]!
+
+          // Temperature: shift red/blue
+          if (adj.temperature !== 0) {
+            const t = adj.temperature * 0.5
+            r = clamp(r + t, 0, 255)
+            b = clamp(b - t, 0, 255)
+          }
+
+          // Exposure: multiply all channels
+          if (adj.exposure !== 0) {
+            const exp = Math.pow(2, adj.exposure / 100)
+            r = clamp(r * exp, 0, 255)
+            g = clamp(g * exp, 0, 255)
+            b = clamp(b * exp, 0, 255)
+          }
+
+          // Highlights: brighten bright areas
+          if (adj.highlights !== 0) {
+            const lum = (r + g + b) / 3
+            if (lum > 128) {
+              const factor = ((lum - 128) / 127) * (adj.highlights / 100) * 40
+              r = clamp(r + factor, 0, 255)
+              g = clamp(g + factor, 0, 255)
+              b = clamp(b + factor, 0, 255)
+            }
+          }
+
+          // Shadows: brighten dark areas
+          if (adj.shadows !== 0) {
+            const lum = (r + g + b) / 3
+            if (lum < 128) {
+              const factor = ((128 - lum) / 128) * (adj.shadows / 100) * 40
+              r = clamp(r + factor, 0, 255)
+              g = clamp(g + factor, 0, 255)
+              b = clamp(b + factor, 0, 255)
+            }
+          }
+
+          // Vibrance: increase saturation of less saturated colors
+          if (adj.vibrance !== 0) {
+            const maxC = Math.max(r, g, b)
+            const minC = Math.min(r, g, b)
+            const sat = maxC > 0 ? (maxC - minC) / maxC : 0
+            const boost = (1 - sat) * (adj.vibrance / 100) * 0.5
+            const avg = (r + g + b) / 3
+            r = clamp(r + (r - avg) * boost, 0, 255)
+            g = clamp(g + (g - avg) * boost, 0, 255)
+            b = clamp(b + (b - avg) * boost, 0, 255)
+          }
+
+          d[i] = Math.round(r)
+          d[i + 1] = Math.round(g)
+          d[i + 2] = Math.round(b)
+        }
+        ctx.putImageData(imageData, 0, 0)
+      }
+
+      const resultUrl = canvas.toDataURL('image/png')
+      updateActiveWithHistory(ui.historyAdjust, (a) => ({
+        ...a, baseDataUrl: resultUrl, adjustments: { ...DEFAULT_ADJUSTMENTS },
+      }))
+      setTempAdjustments({ ...DEFAULT_ADJUSTMENTS })
+    }
+    img.src = active.baseDataUrl
+  }
+
+  function autoEnhanceImage(): void {
+    const auto: ImageAdjustments = {
+      brightness: 8,
+      contrast: 12,
+      saturation: 15,
+      temperature: 3,
+      exposure: 5,
+      highlights: -10,
+      shadows: 15,
+      vibrance: 20,
+    }
+    setTempAdjustments(auto)
+    applyAdjustmentsToImage(auto)
+    setStatus(ui.adjustAutoHint)
+  }
+
+  function addImageLayer(file: File): void {
+    if (!active) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      const img = new Image()
+      img.onload = () => {
+        const layerW = Math.min(img.width, active.width)
+        const layerH = Math.round(layerW * (img.height / img.width))
+        const layer: ImageLayerItem = {
+          id: uid('imglayer'),
+          dataUrl,
+          x: Math.round((active.width - layerW) / 2),
+          y: Math.round((active.height - layerH) / 2),
+          width: layerW,
+          height: layerH,
+          opacity: 1,
+          rotation: 0,
+          visible: true,
+          locked: false,
+        }
+        updateActiveWithHistory(ui.historyAddImageLayer, (a) => ({
+          ...a, imageLayers: [...(a.imageLayers ?? []), layer],
+        }))
+      }
+      img.src = dataUrl
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function flattenImageLayers(): void {
+    if (!active || !(active.imageLayers ?? []).length) return
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = active.width; canvas.height = active.height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+      const loadPromises = (active.imageLayers ?? []).filter((l) => l.visible).map((l) =>
+        new Promise<{ layer: ImageLayerItem; image: HTMLImageElement }>((resolve) => {
+          const layerImg = new Image()
+          layerImg.onload = () => resolve({ layer: l, image: layerImg })
+          layerImg.src = l.dataUrl
+        })
+      )
+      void Promise.all(loadPromises).then((items) => {
+        for (const { layer, image } of items) {
+          ctx.globalAlpha = layer.opacity
+          ctx.save()
+          if (layer.rotation) {
+            ctx.translate(layer.x + layer.width / 2, layer.y + layer.height / 2)
+            ctx.rotate((layer.rotation * Math.PI) / 180)
+            ctx.drawImage(image, -layer.width / 2, -layer.height / 2, layer.width, layer.height)
+          } else {
+            ctx.drawImage(image, layer.x, layer.y, layer.width, layer.height)
+          }
+          ctx.restore()
+        }
+        ctx.globalAlpha = 1
+        const resultUrl = canvas.toDataURL('image/png')
+        updateActiveWithHistory(ui.historyFlattenImageLayers, (a) => ({
+          ...a, baseDataUrl: resultUrl, imageLayers: [],
+        }))
+      })
+    }
+    img.src = active.baseDataUrl
   }
 
   function pickColorFromCanvas(x: number, y: number) {
@@ -7027,7 +7313,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         <div className="optionsDivider" />
         {active ? (
           <span className="optionsModeTag">
-            {tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : tool === 'pen' ? ui.modePen : tool === 'shape' ? ui.modeShape : tool === 'blur' ? ui.modeBlur : tool === 'dodge' ? ui.modeDodge : tool === 'eyedropper' ? ui.modeEyedropper : tool === 'hand' ? ui.modeHand : ui.modeEraser}
+            {tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : tool === 'pen' ? ui.modePen : tool === 'shape' ? ui.modeShape : tool === 'blur' ? ui.modeBlur : tool === 'dodge' ? ui.modeDodge : tool === 'eyedropper' ? ui.modeEyedropper : tool === 'hand' ? ui.modeHand : tool === 'adjust' ? ui.modeAdjust : ui.modeEraser}
           </span>
         ) : null}
         {active && (tool === 'restore' || tool === 'eraser') ? (
@@ -7497,6 +7783,9 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           <FontAwesomeIcon icon={faSun} />
         </button>
         <div className="toolbarSep" />
+        <button className={`toolBtn ${tool === 'adjust' ? 'active' : ''}`} title={ui.toolAdjust} aria-label={ui.toolAdjust} data-tip={ui.toolAdjust} data-key="J" onClick={() => setTool('adjust')} disabled={!active}>
+          <FontAwesomeIcon icon={faSliders} />
+        </button>
         <button className={`toolBtn ${tool === 'eyedropper' ? 'active' : ''}`} title={ui.toolEyedropper} aria-label={ui.toolEyedropper} data-tip={ui.toolEyedropper} data-key="I" onClick={() => setTool('eyedropper')} disabled={!active}>
           <FontAwesomeIcon icon={faEyeDropper} />
         </button>
@@ -7954,6 +8243,23 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                       tension={0}
                     />
                   ))}
+
+                  {/* ── Image layers ── */}
+                  {(active.imageLayers ?? []).filter((l) => l.visible).map((l) => {
+                    const loadedImg = loadedImageLayers[l.id]
+                    if (!loadedImg) return null
+                    return (
+                      <KonvaImage
+                        key={l.id}
+                        image={loadedImg}
+                        x={l.x} y={l.y}
+                        width={l.width} height={l.height}
+                        opacity={l.opacity}
+                        rotation={l.rotation}
+                        listening={false}
+                      />
+                    )
+                  })}
 
                   {/* ── Drawing strokes ── */}
                   {(active.drawings ?? []).map((d) => (
@@ -8671,6 +8977,94 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     </div>
                   </div>
                   <div className="hint">{ui.eyedropperHint}</div>
+                </div>
+              ) : null}
+
+              {/* ── Adjust Tool ── */}
+              {tool === 'adjust' ? (
+                <>
+                  <div className="propSection">
+                    <div className="propSectionTitle">{ui.toolAdjust}</div>
+                    {([
+                      ['brightness', ui.adjustBrightness],
+                      ['contrast', ui.adjustContrast],
+                      ['saturation', ui.adjustSaturation],
+                      ['temperature', ui.adjustTemperature],
+                      ['exposure', ui.adjustExposure],
+                      ['highlights', ui.adjustHighlights],
+                      ['shadows', ui.adjustShadows],
+                      ['vibrance', ui.adjustVibrance],
+                    ] as [keyof ImageAdjustments, string][]).map(([key, label]) => (
+                      <div className="propSliderRow" key={key}>
+                        <span className="propLabel">{label}</span>
+                        <input className="smoothRange" type="range" min={-100} max={100} step={1} value={tempAdjustments[key]}
+                          onChange={(e) => setTempAdjustments((prev) => ({ ...prev, [key]: Number(e.target.value) }))} />
+                        <span className="propSliderVal">{tempAdjustments[key] > 0 ? '+' : ''}{tempAdjustments[key]}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="propSection">
+                    <div className="propBtnGrid cols3">
+                      <button className="btn primary" disabled={Object.values(tempAdjustments).every((v) => v === 0)} onClick={() => applyAdjustmentsToImage(tempAdjustments)}>{ui.adjustApply}</button>
+                      <button className="btn" onClick={autoEnhanceImage}>{ui.adjustAutoEnhance}</button>
+                      <button className="btn" onClick={() => setTempAdjustments({ ...DEFAULT_ADJUSTMENTS })}>{ui.adjustReset}</button>
+                    </div>
+                    <div className="hint">{ui.adjustHint}</div>
+                  </div>
+                </>
+              ) : null}
+
+              {/* ── Image Layers (shown in all non-text tools) ── */}
+              {active ? (
+                <div className="propSection">
+                  <div className="propSectionTitle">{ui.imageLayer}</div>
+                  <div className="propBtnGrid cols2">
+                    <button className="btn" onClick={() => imageLayerInputRef.current?.click()}>
+                      <FontAwesomeIcon icon={faImage} style={{ marginRight: 4 }} />{ui.imageLayerAdd}
+                    </button>
+                    <input ref={imageLayerInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) addImageLayer(f); e.target.value = '' }} />
+                    <button className="btn" disabled={!(active.imageLayers ?? []).length}
+                      onClick={flattenImageLayers}>{ui.imageLayerFlatten}</button>
+                  </div>
+                  {(active.imageLayers ?? []).length > 0 ? (
+                    <div className="propLayerList" style={{ marginTop: 4 }}>
+                      {(active.imageLayers ?? []).map((l, idx) => (
+                        <div key={l.id} className="propLayerItem active">
+                          <button className="propLayerMain" title={`Layer ${idx + 1}`}>
+                            <span className="propLayerIndex">L{idx + 1}</span>
+                            <span className="propLayerName">{l.width}×{l.height}</span>
+                          </button>
+                          <div className="propLayerActions" style={{ opacity: 1 }}>
+                            <button className="propLayerBtn" onClick={() => {
+                              updateActiveWithHistory(ui.historyRemoveImageLayer, (a) => ({
+                                ...a, imageLayers: (a.imageLayers ?? []).filter((il) => il.id !== l.id),
+                              }))
+                            }} title={ui.imageLayerRemove}>✕</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="hint">{ui.imageLayerHint}</div>
+                  )}
+                  {(active.imageLayers ?? []).length > 0 ? (
+                    <div className="propSliderRow" style={{ marginTop: 4 }}>
+                      <span className="propLabel">{ui.imageLayerOpacity}</span>
+                      <input className="smoothRange" type="range" min={0} max={100} step={1}
+                        value={Math.round(((active.imageLayers ?? [])[(active.imageLayers ?? []).length - 1]?.opacity ?? 1) * 100)}
+                        onChange={(e) => {
+                          const layers = active.imageLayers ?? []
+                          if (!layers.length) return
+                          const lastId = layers[layers.length - 1]!.id
+                          updateActive((a) => ({
+                            ...a, imageLayers: (a.imageLayers ?? []).map((il) =>
+                              il.id === lastId ? { ...il, opacity: Number(e.target.value) / 100 } : il),
+                          }))
+                        }} />
+                      <span className="propSliderVal">{Math.round(((active.imageLayers ?? [])[(active.imageLayers ?? []).length - 1]?.opacity ?? 1) * 100)}%</span>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

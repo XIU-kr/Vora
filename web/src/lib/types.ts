@@ -1,4 +1,4 @@
-export type Tool = 'restore' | 'eraser' | 'select' | 'text' | 'crop' | 'move' | 'pen' | 'shape' | 'blur' | 'dodge' | 'eyedropper' | 'hand'
+export type Tool = 'restore' | 'eraser' | 'select' | 'text' | 'crop' | 'move' | 'pen' | 'shape' | 'blur' | 'dodge' | 'eyedropper' | 'hand' | 'adjust'
 
 export type DrawingStroke = {
   id: string
@@ -28,6 +28,30 @@ export type ShapeItem = {
 
 export type BlurMode = 'blur' | 'sharpen'
 export type DodgeMode = 'dodge' | 'burn'
+
+export type ImageLayerItem = {
+  id: string
+  dataUrl: string
+  x: number
+  y: number
+  width: number
+  height: number
+  opacity: number
+  rotation: number
+  visible: boolean
+  locked: boolean
+}
+
+export type ImageAdjustments = {
+  brightness: number   // -100 to 100 (0 = default)
+  contrast: number     // -100 to 100 (0 = default)
+  saturation: number   // -100 to 100 (0 = default)
+  temperature: number  // -100 to 100 (0 = default, negative = cool, positive = warm)
+  exposure: number     // -100 to 100 (0 = default)
+  highlights: number   // -100 to 100 (0 = default)
+  shadows: number      // -100 to 100 (0 = default)
+  vibrance: number     // -100 to 100 (0 = default)
+}
 
 export type MaskStroke = {
   id: string
@@ -81,4 +105,6 @@ export type PageAsset = {
   texts: TextItem[]
   drawings: DrawingStroke[]
   shapes: ShapeItem[]
+  imageLayers: ImageLayerItem[]
+  adjustments: ImageAdjustments
 }
