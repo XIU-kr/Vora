@@ -810,108 +810,312 @@
 .accordionBody::-webkit-scrollbar { width: 3px; }
 .accordionBody::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
 
-/* ─── Photoshop-style property sections ─── */
+/* ─── Photoshop-style Properties Panel ─── */
+
+/* Section: borderless, tight, separated by thin dividers */
 .propSection {
-  margin-bottom: 6px;
-  padding: 6px;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.propSection:last-child { margin-bottom: 0; }
+.propSection:first-child { padding-top: 0; }
+.propSection:last-child { border-bottom: none; padding-bottom: 0; }
 
 .propSectionTitle {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.4);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 5px;
-  padding-bottom: 3px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
 }
 
+/* Row: label–value pair, Photoshop-style 2-column */
 .propRow {
   display: grid;
-  grid-template-columns: 60px 1fr;
-  gap: 4px;
+  grid-template-columns: 52px 1fr;
+  gap: 0 6px;
   align-items: center;
-  margin-bottom: 3px;
+  min-height: 22px;
+  margin-bottom: 2px;
 }
 
 .propRow:last-child { margin-bottom: 0; }
 
 .propLabel {
   font-size: 10px;
-  color: var(--faint);
+  color: rgba(255, 255, 255, 0.45);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: default;
+  user-select: none;
+  line-height: 22px;
 }
 
 .propValue {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  min-width: 0;
 }
 
+/* All inputs inside property values — Photoshop-compact */
 .propValue .input,
 .propValue .select {
-  min-height: 24px;
-  height: 24px;
+  min-height: 22px;
+  height: 22px;
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 0 5px;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.propValue .input:focus,
+.propValue .select:focus {
+  border-color: rgba(108, 140, 255, 0.5);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .propValue .smoothRange {
-  height: 20px;
+  height: 18px;
   flex: 1;
+  min-width: 40px;
+}
+
+.propValue .smoothRange::-webkit-slider-runnable-track {
+  height: 3px;
+}
+
+.propValue .smoothRange::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  margin-top: -4.5px;
+  border-width: 1.5px;
+  box-shadow: 0 0 0 2px rgba(108, 140, 255, 0.1);
+}
+
+.propValue .smoothRange::-moz-range-track {
+  height: 3px;
+}
+
+.propValue .smoothRange::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-width: 1.5px;
+  box-shadow: 0 0 0 2px rgba(108, 140, 255, 0.1);
 }
 
 .propValue .btn {
-  min-height: 24px;
-  padding: 2px 6px;
+  min-height: 22px;
+  padding: 0 6px;
   font-size: 10px;
+  border-radius: 3px;
 }
 
+/* Inline number + unit pair */
 .propInline {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .propInline .input {
-  width: 52px;
-  min-height: 24px;
-  height: 24px;
+  width: 48px;
+  min-height: 22px;
+  height: 22px;
   text-align: right;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  padding: 2px 4px;
+  padding: 0 4px;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
 }
 
 .propUnit {
   font-size: 9px;
-  color: var(--faint);
-  min-width: 16px;
+  color: rgba(255, 255, 255, 0.3);
+  min-width: 14px;
+  user-select: none;
 }
 
-/* Compact button grid for property panels */
+/* Button grid — Photoshop-style segmented controls */
 .propBtnGrid {
   display: grid;
-  gap: 3px;
-  margin-top: 3px;
+  gap: 2px;
+  margin-top: 4px;
 }
 
 .propBtnGrid.cols2 { grid-template-columns: 1fr 1fr; }
 .propBtnGrid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
 .propBtnGrid.cols4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.propBtnGrid.cols5 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
+.propBtnGrid.cols6 { grid-template-columns: repeat(6, 1fr); }
+.propBtnGrid.cols7 { grid-template-columns: repeat(7, 1fr); }
 
 .propBtnGrid .btn {
-  min-height: 24px;
-  padding: 3px 4px;
+  min-height: 22px;
+  padding: 2px 3px;
   font-size: 10px;
+  border-radius: 3px;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.propBtnGrid .btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.propBtnGrid .btn.active,
+.propBtnGrid .btn.selected {
+  background: rgba(108, 140, 255, 0.18);
+  border-color: rgba(108, 140, 255, 0.4);
+  color: #d0ddff;
+}
+
+/* Photoshop-style linked dimension fields (W/H with chain) */
+.propDimRow {
+  display: grid;
+  grid-template-columns: 52px 1fr 20px 1fr 22px;
+  gap: 0 3px;
+  align-items: center;
+  min-height: 22px;
+}
+
+.propDimRow .propDimLabel {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: right;
+  padding-right: 2px;
+}
+
+.propDimRow .propDimInput {
+  min-height: 22px;
+  height: 22px;
+  font-size: 11px;
+  padding: 0 4px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+}
+
+.propDimRow .propDimInput:focus {
+  border-color: rgba(108, 140, 255, 0.5);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.propDimSep {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+  text-align: center;
+  user-select: none;
+}
+
+.propLinkBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 80ms ease;
+}
+
+.propLinkBtn:hover { border-color: rgba(255, 255, 255, 0.15); color: rgba(255, 255, 255, 0.6); }
+.propLinkBtn.linked { color: var(--accent); border-color: rgba(108, 140, 255, 0.3); }
+
+/* Color swatch row (Photoshop-style) */
+.propSwatchRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.propSwatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.propSwatch input {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.propSwatch::after {
+  content: attr(data-label);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: #c0d0e8;
+  background: rgba(10, 10, 24, 0.95);
+  border: 1px solid var(--stroke);
+  border-radius: 3px;
+  padding: 2px 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 80ms ease;
+}
+
+.propSwatch:hover::after { opacity: 1; }
+
+.propSwatchFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.propSwatchLabel {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.35);
+  user-select: none;
+}
+
+/* Slider with integrated value display */
+.propSliderRow {
+  display: grid;
+  grid-template-columns: 52px 1fr 36px;
+  gap: 0 4px;
+  align-items: center;
+  min-height: 22px;
+}
+
+.propSliderRow .propLabel { line-height: 22px; }
+
+.propSliderVal {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }
 
 /* Compact action bar at bottom of sidebar */
@@ -925,10 +1129,143 @@
 }
 
 .sidebarActions .btn {
-  min-height: 26px;
+  min-height: 24px;
   padding: 3px 8px;
   font-size: 10px;
   flex: 1;
+}
+
+/* Hint text inside property sections */
+.propSection .hint {
+  margin-top: 3px;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.28);
+  line-height: 1.3;
+}
+
+/* Info chip */
+.propInfoChip {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Photoshop-style Layer List ─── */
+.propLayerList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 140px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.propLayerItem {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.1s;
+}
+
+.propLayerItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.propLayerItem.active {
+  background: rgba(108, 140, 255, 0.12);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.propLayerMain {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 3px 6px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.propLayerMain:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.propLayerIndex {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+  min-width: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.propLayerName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.propLayerTag {
+  font-size: 8px;
+  padding: 0 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.propLayerActions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-right: 2px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.propLayerItem:hover .propLayerActions,
+.propLayerItem.active .propLayerActions {
+  opacity: 1;
+}
+
+.propLayerBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.propLayerBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.propLayerDanger:hover {
+  background: rgba(255, 80, 80, 0.15);
+  color: #ff6b6b;
 }
 
 /* ─── Status bar ─── */

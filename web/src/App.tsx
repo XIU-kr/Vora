@@ -7657,51 +7657,24 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
             <div className="accordionBody">
             {tool !== 'text' ? (
             <>
+              {/* ── Restore Tool ── */}
               {tool === 'restore' ? (
                 <>
                   <div className="propSection">
                     <div className="propSectionTitle">{ui.brushSize}</div>
-                    <div className="propRow">
+                    <div className="propSliderRow">
                       <span className="propLabel">Size</span>
-                      <div className="propValue">
-                        <input
-                          className="input smoothRange"
-                          type="range"
-                          min={0}
-                          max={BRUSH_SLIDER_MAX}
-                          step={1}
-                          value={brushSliderValue}
-                          onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))}
-                        />
-                        <div className="propInline">
-                          <input
-                            className="input"
-                            type="number"
-                            min={BRUSH_MIN}
-                            max={BRUSH_MAX}
-                            value={brushSize}
-                            onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))}
-                          />
-                          <span className="propUnit">px</span>
-                        </div>
-                      </div>
+                      <input className="input smoothRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+                      <span className="propSliderVal">{brushSize}px</span>
                     </div>
                     <div className="hint">{ui.restoreHint}</div>
                   </div>
                   <div className="propSection">
-                    <div className="propSectionTitle">{ui.macroCount}</div>
+                    <div className="propSectionTitle">Batch</div>
                     <div className="propRow">
                       <span className="propLabel">Repeat</span>
                       <div className="propValue">
-                        <input
-                          className="input"
-                          type="number"
-                          min={1}
-                          max={10}
-                          value={macroRepeatCount}
-                          onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))}
-                          style={{ width: 52 }}
-                        />
+                        <input className="input" type="number" min={1} max={10} value={macroRepeatCount} onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))} style={{ width: 44 }} />
                       </div>
                     </div>
                     <div className="propBtnGrid cols2">
@@ -7717,51 +7690,24 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 </>
               ) : null}
 
+              {/* ── Eraser Tool ── */}
               {tool === 'eraser' ? (
                 <>
                   <div className="propSection">
                     <div className="propSectionTitle">{ui.brushSize}</div>
-                    <div className="propRow">
+                    <div className="propSliderRow">
                       <span className="propLabel">Size</span>
-                      <div className="propValue">
-                        <input
-                          className="input smoothRange"
-                          type="range"
-                          min={0}
-                          max={BRUSH_SLIDER_MAX}
-                          step={1}
-                          value={brushSliderValue}
-                          onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))}
-                        />
-                        <div className="propInline">
-                          <input
-                            className="input"
-                            type="number"
-                            min={BRUSH_MIN}
-                            max={BRUSH_MAX}
-                            value={brushSize}
-                            onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))}
-                          />
-                          <span className="propUnit">px</span>
-                        </div>
-                      </div>
+                      <input className="input smoothRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+                      <span className="propSliderVal">{brushSize}px</span>
                     </div>
                     <div className="hint">{ui.eraserHint}</div>
                   </div>
                   <div className="propSection">
-                    <div className="propSectionTitle">{ui.macroCount}</div>
+                    <div className="propSectionTitle">Batch</div>
                     <div className="propRow">
                       <span className="propLabel">Repeat</span>
                       <div className="propValue">
-                        <input
-                          className="input"
-                          type="number"
-                          min={1}
-                          max={10}
-                          value={macroRepeatCount}
-                          onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))}
-                          style={{ width: 52 }}
-                        />
+                        <input className="input" type="number" min={1} max={10} value={macroRepeatCount} onChange={(e) => setMacroRepeatCount(clamp(Number(e.target.value), 1, 10))} style={{ width: 44 }} />
                       </div>
                     </div>
                     <div className="propBtnGrid cols2">
@@ -7777,6 +7723,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 </>
               ) : null}
 
+              {/* ── Move Tool ── */}
               {tool === 'move' && active ? (
                 <>
                   <div className="propSection">
@@ -7786,45 +7733,39 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                       <button className="btn" disabled={!!busy} onClick={() => void rotateImage(270)}>↺ 90°</button>
                       <button className="btn" disabled={!!busy} onClick={() => void rotateImage(180)}>180°</button>
                     </div>
-                    <div className="propBtnGrid cols2" style={{ marginTop: 3 }}>
+                    <div className="propBtnGrid cols2">
                       <button className="btn" disabled={!!busy} onClick={() => void flipImage('h')}>{ui.flipH}</button>
                       <button className="btn" disabled={!!busy} onClick={() => void flipImage('v')}>{ui.flipV}</button>
                     </div>
                   </div>
                   <div className="propSection">
                     <div className="propSectionTitle">{ui.imageResize}</div>
-                    <div className="propRow">
-                      <span className="propLabel">W</span>
-                      <div className="propValue">
-                        <input className="input" type="number" min={1} value={resizeWidth} onChange={(e) => {
-                          const v = Number(e.target.value)
-                          setResizeWidth(v)
-                          if (resizeLockAspect && active) setResizeHeight(Math.round(v * (active.height / active.width)))
-                        }} style={{ width: 72 }} />
-                        <span className="propUnit">px</span>
-                      </div>
-                    </div>
-                    <div className="propRow">
-                      <span className="propLabel">H</span>
-                      <div className="propValue">
-                        <input className="input" type="number" min={1} value={resizeHeight} onChange={(e) => {
-                          const v = Number(e.target.value)
-                          setResizeHeight(v)
-                          if (resizeLockAspect && active) setResizeWidth(Math.round(v * (active.width / active.height)))
-                        }} style={{ width: 72 }} />
-                        <span className="propUnit">px</span>
-                        <button className="btn" title={ui.lockAspect} onClick={() => setResizeLockAspect((p) => !p)} style={{ minWidth: 28, padding: '2px 4px' }}>
-                          {resizeLockAspect ? '🔒' : '🔓'}
-                        </button>
-                      </div>
+                    <div className="propDimRow">
+                      <span className="propDimLabel">W</span>
+                      <input className="input propDimInput" type="number" min={1} value={resizeWidth} onChange={(e) => {
+                        const v = Number(e.target.value)
+                        setResizeWidth(v)
+                        if (resizeLockAspect && active) setResizeHeight(Math.round(v * (active.height / active.width)))
+                      }} />
+                      <span className="propDimSep">×</span>
+                      <input className="input propDimInput" type="number" min={1} value={resizeHeight} onChange={(e) => {
+                        const v = Number(e.target.value)
+                        setResizeHeight(v)
+                        if (resizeLockAspect && active) setResizeWidth(Math.round(v * (active.width / active.height)))
+                      }} />
+                      <button className={`propLinkBtn ${resizeLockAspect ? 'linked' : ''}`} title={ui.lockAspect} onClick={() => setResizeLockAspect((p) => !p)}>
+                        {resizeLockAspect ? '🔗' : '⛓️‍💥'}
+                      </button>
                     </div>
                     <div className="propBtnGrid cols2">
                       <button className="btn primary" disabled={!!busy} onClick={() => void applyResize()}>{ui.applyResize}</button>
                     </div>
+                    {active ? <div className="hint">Original: {active.width} × {active.height}</div> : null}
                   </div>
                 </>
               ) : null}
 
+              {/* ── Select Tool ── */}
               {tool === 'select' ? (
                 <>
                   <div className="propSection">
@@ -7835,61 +7776,64 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                       <button className={`btn ${selectMode === 'ellipse' ? 'active' : ''}`} onClick={() => setSelectMode('ellipse')}>{ui.selectModeEllipse}</button>
                       <button className={`btn ${selectMode === 'lasso' ? 'active' : ''}`} onClick={() => setSelectMode('lasso')}>{ui.selectModeLasso}</button>
                     </div>
-                    <div className="propBtnGrid cols2" style={{ marginTop: 4 }}>
-                      <button className="btn primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
-                    </div>
-                    <div className="hint" style={{ marginTop: 3 }}>{selectionMaskDataUrl ? ui.selectionToolHintHasSelection : ui.selectionToolHint}</div>
-                    {selectionMaskBounds ? <div className="hint">{ui.aiPreviewArea}: {selectionMaskBounds.width} x {selectionMaskBounds.height}</div> : null}
+                    <div className="hint">{selectionMaskDataUrl ? ui.selectionToolHintHasSelection : ui.selectionToolHint}</div>
+                    {selectionMaskBounds ? <div className="propInfoChip">{selectionMaskBounds.width} × {selectionMaskBounds.height}</div> : null}
                   </div>
                   <div className="propSection">
-                    <div className="propSectionTitle">Actions</div>
+                    <div className="propSectionTitle">Quick Actions</div>
+                    <div className="propBtnGrid cols2">
+                      <button className="btn primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
+                      <button className="btn primary" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('restoreSelection')}>{ui.selectionActionRestore}</button>
+                    </div>
+                  </div>
+                  <div className="propSection">
+                    <div className="propSectionTitle">Selection Actions</div>
                     <div className="propBtnGrid cols2">
                       <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('eraseSelection')}>{ui.selectionActionErase}</button>
                       <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('transparentBackground')}>{ui.selectionActionTransparentBg}</button>
                     </div>
-                    <div className="propRow" style={{ marginTop: 4 }}>
+                    <div className="propRow">
                       <span className="propLabel">Fill</span>
                       <div className="propValue">
-                        <label className="quickColor" title={ui.selectionFillColor} aria-label={ui.selectionFillColor}>
+                        <div className="propSwatch" data-label={ui.selectionFillColor}>
+                          <span className="propSwatchFill" style={{ background: selectionFillColor }} />
                           <input type="color" value={selectionFillColor} onChange={(e) => setSelectionFillColor(e.target.value)} />
-                        </label>
+                        </div>
                         <button className="btn" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('fillBackground')}>{ui.selectionActionFillBg}</button>
                       </div>
                     </div>
-                    <input
-                      ref={selectionBackgroundInputRef}
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => void onSelectionBackgroundImageChange(e.target.files)}
-                    />
-                    <div className="propBtnGrid cols2" style={{ marginTop: 4 }}>
+                    <input ref={selectionBackgroundInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => void onSelectionBackgroundImageChange(e.target.files)} />
+                    <div className="propBtnGrid cols2">
                       <button className="btn" onClick={() => selectionBackgroundInputRef.current?.click()}>{ui.selectionPickBackgroundImage}</button>
                       <button className="btn" disabled={!!busy || !selectionMaskDataUrl || !selectionBackgroundImageUrl} onClick={() => void applySelectionAction('replaceBackground')}>{ui.selectionActionReplaceBg}</button>
                     </div>
                     {selectionBackgroundImageUrl ? <div className="hint">{ui.selectionBackgroundImageReady}</div> : null}
-                    <div className="propBtnGrid cols2" style={{ marginTop: 4 }}>
-                      <button className="btn primary" disabled={!!busy || !selectionMaskDataUrl} onClick={() => void applySelectionAction('restoreSelection')}>{ui.selectionActionRestore}</button>
-                      <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => { setSelectionMaskDataUrl(null); setSelectionMaskBounds(null); setSelectionBackgroundImageUrl(null); setAntsDashOffset(0); }}>{ui.selectionActionClear}</button>
+                    <div className="propBtnGrid cols2">
+                      <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => { setSelectionMaskDataUrl(null); setSelectionMaskBounds(null); setSelectionBackgroundImageUrl(null); setAntsDashOffset(0) }}>{ui.selectionActionClear}</button>
                     </div>
                   </div>
                   <div className="propSection">
                     <div className="propSectionTitle">{ui.selectionModify}</div>
-                    <div className="propBtnGrid cols2">
-                      <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void invertSelection()}>{ui.selectionInvert}</button>
-                    </div>
-                    <div className="propRow" style={{ marginTop: 4 }}>
-                      <span className="propLabel">Radius</span>
+                    <div className="propRow">
+                      <span className="propLabel">Invert</span>
                       <div className="propValue">
-                        <input className="input" type="number" min={1} max={50} value={expandContractRadius} onChange={(e) => setExpandContractRadius(Number(e.target.value))} style={{ width: 48 }} />
-                        <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'expand')}>{ui.selectionExpand}</button>
-                        <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'contract')}>{ui.selectionContract}</button>
+                        <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void invertSelection()}>{ui.selectionInvert}</button>
+                      </div>
+                    </div>
+                    <div className="propRow">
+                      <span className="propLabel">Expand</span>
+                      <div className="propValue">
+                        <input className="input" type="number" min={1} max={50} value={expandContractRadius} onChange={(e) => setExpandContractRadius(Number(e.target.value))} style={{ width: 44 }} />
+                        <span className="propUnit">px</span>
+                        <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'expand')}>+</button>
+                        <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void morphSelection(expandContractRadius, 'contract')}>−</button>
                       </div>
                     </div>
                     <div className="propRow">
                       <span className="propLabel">Feather</span>
                       <div className="propValue">
-                        <input className="input" type="number" min={1} max={50} value={featherRadius} onChange={(e) => setFeatherRadius(Number(e.target.value))} style={{ width: 48 }} />
+                        <input className="input" type="number" min={1} max={50} value={featherRadius} onChange={(e) => setFeatherRadius(Number(e.target.value))} style={{ width: 44 }} />
+                        <span className="propUnit">px</span>
                         <button className="btn" disabled={!selectionMaskDataUrl} onClick={() => void featherSelection(featherRadius)}>{ui.selectionFeather}</button>
                       </div>
                     </div>
@@ -7897,8 +7841,9 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 </>
               ) : null}
 
+              {/* ── AI Preview (Restore/Eraser result) ── */}
               {(tool === 'restore' || tool === 'eraser') && pendingMaskAction && pendingMaskAction.assetId === active?.id && pendingMaskAction.tool === tool ? (
-                <div className="propSection" style={{ borderColor: 'rgba(108,140,255,0.25)', background: 'rgba(108,140,255,0.04)' }}>
+                <div className="propSection" style={{ background: 'rgba(108,140,255,0.03)', padding: '7px 6px', borderRadius: 4, border: '1px solid rgba(108,140,255,0.15)' }}>
                   <div className="propSectionTitle">{ui.aiPreviewTitle}</div>
                   <div className="hint">{ui.aiPreviewConfirm}</div>
                   <div className="propRow">
@@ -7911,21 +7856,12 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     </div>
                   </div>
                   {maskApplyScope === 'crop' && !activeCropRect ? <div className="hint">{ui.aiPreviewNoCrop}</div> : null}
-                  <div className="propRow">
+                  <div className="propSliderRow">
                     <span className="propLabel">Opacity</span>
-                    <div className="propValue">
-                      <input
-                        className="input smoothRange"
-                        type="range"
-                        min={10}
-                        max={100}
-                        step={1}
-                        value={Math.round(maskPreviewOpacity * 100)}
-                        onChange={(e) => setMaskPreviewOpacity(clamp(Number(e.target.value) / 100, 0.1, 1))}
-                      />
-                    </div>
+                    <input className="input smoothRange" type="range" min={10} max={100} step={1} value={Math.round(maskPreviewOpacity * 100)} onChange={(e) => setMaskPreviewOpacity(clamp(Number(e.target.value) / 100, 0.1, 1))} />
+                    <span className="propSliderVal">{Math.round(maskPreviewOpacity * 100)}%</span>
                   </div>
-                  {pendingMaskBounds ? <div className="hint">{ui.aiPreviewArea}: {pendingMaskBounds.width} x {pendingMaskBounds.height}</div> : null}
+                  {pendingMaskBounds ? <div className="propInfoChip">{pendingMaskBounds.width} × {pendingMaskBounds.height}</div> : null}
                   <div className="propBtnGrid cols2">
                     <button className="btn primary" disabled={!!busy || !pendingMaskBounds} onClick={() => void applyPendingMaskAction()}>{ui.aiPreviewApply}</button>
                     <button className="btn" disabled={!!busy} onClick={cancelPendingMaskAction}>{ui.aiPreviewCancel}</button>
@@ -7933,56 +7869,40 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 </div>
               ) : null}
 
+              {/* ── Crop Tool ── */}
               {tool === 'crop' ? (
                 <div className="propSection">
                   <div className="propSectionTitle">{ui.cropSelection}</div>
-                  <div className="cropGrid">
-                    <div>
-                      <div className="label">{ui.cropX}</div>
-                      <input className="input" type="number" min={0} max={Math.max(0, (active?.width ?? 1) - 1)} value={activeCropRect?.x ?? ''} onChange={(e) => updateCropField('x', Number(e.target.value))} />
-                    </div>
-                    <div>
-                      <div className="label">{ui.cropY}</div>
-                      <input className="input" type="number" min={0} max={Math.max(0, (active?.height ?? 1) - 1)} value={activeCropRect?.y ?? ''} onChange={(e) => updateCropField('y', Number(e.target.value))} />
-                    </div>
-                    <div>
-                      <div className="label">{ui.cropWidth}</div>
-                      <input className="input" type="number" min={1} max={Math.max(1, active?.width ?? 1)} value={activeCropRect?.width ?? ''} onChange={(e) => updateCropField('width', Number(e.target.value))} />
-                    </div>
-                    <div>
-                      <div className="label">{ui.cropHeight}</div>
-                      <input className="input" type="number" min={1} max={Math.max(1, active?.height ?? 1)} value={activeCropRect?.height ?? ''} onChange={(e) => updateCropField('height', Number(e.target.value))} />
+                  <div className="propRow">
+                    <span className="propLabel">X</span>
+                    <div className="propValue">
+                      <input className="input" type="number" min={0} max={Math.max(0, (active?.width ?? 1) - 1)} value={activeCropRect?.x ?? ''} onChange={(e) => updateCropField('x', Number(e.target.value))} style={{ width: 56 }} />
+                      <span className="propUnit">Y</span>
+                      <input className="input" type="number" min={0} max={Math.max(0, (active?.height ?? 1) - 1)} value={activeCropRect?.y ?? ''} onChange={(e) => updateCropField('y', Number(e.target.value))} style={{ width: 56 }} />
                     </div>
                   </div>
-                  <div className="label">{ui.cropPreset}</div>
-                  <div className="cropPresetRow">
-                    <button className={`btn ghost ${cropPreset === 'full' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('full')}>{ui.cropPresetFull}</button>
-                    <button className={`btn ghost ${cropPreset === 'free' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('free')}>{ui.cropPresetFree}</button>
-                    <button className={`btn ghost ${cropPreset === '1:1' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('1:1')}>{ui.cropPresetSquare}</button>
-                    <button className={`btn ghost ${cropPreset === '4:3' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('4:3')}>{ui.cropPresetFourThree}</button>
-                    <button className={`btn ghost ${cropPreset === '16:9' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('16:9')}>{ui.cropPresetSixteenNine}</button>
-                  </div>
-                  <div className="cropNudgePanel">
-                    <div>
-                      <div className="label">{ui.cropNudgeMove}</div>
-                      <div className="cropNudgeRow">
-                        <button className="btn ghost" disabled={!activeCropRect} onClick={() => nudgeCropPosition(-1, 0)} aria-label={ui.cropMoveLeft} title={ui.cropMoveLeft}>←</button>
-                        <button className="btn ghost" disabled={!activeCropRect} onClick={() => nudgeCropPosition(1, 0)} aria-label={ui.cropMoveRight} title={ui.cropMoveRight}>→</button>
-                        <button className="btn ghost" disabled={!activeCropRect} onClick={() => nudgeCropPosition(0, -1)} aria-label={ui.cropMoveUp} title={ui.cropMoveUp}>↑</button>
-                        <button className="btn ghost" disabled={!activeCropRect} onClick={() => nudgeCropPosition(0, 1)} aria-label={ui.cropMoveDown} title={ui.cropMoveDown}>↓</button>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="label">{ui.cropNudgeResize}</div>
-                      <div className="cropNudgeRow">
-                        <button className="btn ghost" disabled={!activeCropRect} onClick={() => nudgeCropSize(-1, 0)} aria-label={ui.cropShrinkWidth} title={ui.cropShrinkWidth}>W-</button>
-                        <button className="btn ghost" disabled={!activeCropRect} onClick={() => nudgeCropSize(1, 0)} aria-label={ui.cropGrowWidth} title={ui.cropGrowWidth}>W+</button>
-                        <button className="btn ghost" disabled={!activeCropRect} onClick={() => nudgeCropSize(0, -1)} aria-label={ui.cropShrinkHeight} title={ui.cropShrinkHeight}>H-</button>
-                        <button className="btn ghost" disabled={!activeCropRect} onClick={() => nudgeCropSize(0, 1)} aria-label={ui.cropGrowHeight} title={ui.cropGrowHeight}>H+</button>
-                      </div>
+                  <div className="propRow">
+                    <span className="propLabel">W</span>
+                    <div className="propValue">
+                      <input className="input" type="number" min={1} max={Math.max(1, active?.width ?? 1)} value={activeCropRect?.width ?? ''} onChange={(e) => updateCropField('width', Number(e.target.value))} style={{ width: 56 }} />
+                      <span className="propUnit">H</span>
+                      <input className="input" type="number" min={1} max={Math.max(1, active?.height ?? 1)} value={activeCropRect?.height ?? ''} onChange={(e) => updateCropField('height', Number(e.target.value))} style={{ width: 56 }} />
                     </div>
                   </div>
-                  <div className="buttonRow">
+                  <div className="propBtnGrid cols5">
+                    <button className={`btn ${cropPreset === 'full' ? 'active' : ''}`} disabled={!active} onClick={() => applyCropPreset('full')}>{ui.cropPresetFull}</button>
+                    <button className={`btn ${cropPreset === 'free' ? 'active' : ''}`} disabled={!active} onClick={() => applyCropPreset('free')}>{ui.cropPresetFree}</button>
+                    <button className={`btn ${cropPreset === '1:1' ? 'active' : ''}`} disabled={!active} onClick={() => applyCropPreset('1:1')}>1:1</button>
+                    <button className={`btn ${cropPreset === '4:3' ? 'active' : ''}`} disabled={!active} onClick={() => applyCropPreset('4:3')}>4:3</button>
+                    <button className={`btn ${cropPreset === '16:9' ? 'active' : ''}`} disabled={!active} onClick={() => applyCropPreset('16:9')}>16:9</button>
+                  </div>
+                  <div className="propBtnGrid cols4">
+                    <button className="btn" disabled={!activeCropRect} onClick={() => nudgeCropPosition(-1, 0)} title={ui.cropMoveLeft}>←</button>
+                    <button className="btn" disabled={!activeCropRect} onClick={() => nudgeCropPosition(1, 0)} title={ui.cropMoveRight}>→</button>
+                    <button className="btn" disabled={!activeCropRect} onClick={() => nudgeCropPosition(0, -1)} title={ui.cropMoveUp}>↑</button>
+                    <button className="btn" disabled={!activeCropRect} onClick={() => nudgeCropPosition(0, 1)} title={ui.cropMoveDown}>↓</button>
+                  </div>
+                  <div className="propBtnGrid cols3">
                     <button className="btn primary" disabled={!active || !activeCropRect || !!busy} onClick={() => void applyCrop()}>{ui.applyCrop}</button>
                     <button className="btn" disabled={!active || !activeCropRect || !!busy} onClick={() => void previewCrop()}>{ui.previewCrop}</button>
                     <button className="btn" disabled={!activeCropRect} onClick={() => clearCropSelection(ui.cancelCrop)}>{ui.cancelCrop}</button>
@@ -8063,74 +7983,98 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
             </>
             ) : null}
 
-            {tool !== 'eraser' && tool !== 'restore' && tool !== 'select' ? (
-            <div className="row layerRow">
-              <div className="label">{ui.textLayers}</div>
+            {tool !== 'eraser' && tool !== 'restore' && tool !== 'select' ? (<>
+              {/* ── Text: Font & Style ── */}
               {selectedText ? (
-                <div className="textOptionGroup textToolRow">
-                  <div className="textOptionTitle label">{ui.selectedText}</div>
-                  <label className="srOnly" htmlFor="text-font-search-panel">{ui.fontSearchPlaceholder}</label>
-                  <input
-                    id="text-font-search-panel"
-                    className="input quickFontSearch"
-                    type="search"
-                    value={fontSearchQuery}
-                    onChange={(e) => setFontSearchQuery(e.target.value)}
-                    placeholder={ui.fontSearchPlaceholder}
-                    aria-label={ui.fontSearchPlaceholder}
-                  />
-                  <label className="srOnly" htmlFor="text-font-preset-panel">{ui.fontPresetLabel}</label>
-                  <select
-                    id="text-font-preset-panel"
-                    className="select quickFontPreset"
-                    title={ui.fontPresetLabel}
-                    aria-label={ui.fontPresetLabel}
-                    disabled={selectedText.locked}
-                    value={resolveTextFontPreset(selectedText)}
-                    onChange={(e) => {
-                      const preset = TEXT_FONT_PRESETS.find((item) => item.id === e.target.value)
-                      if (!preset) return
-                      ensureGoogleWebFontLoaded(preset.family)
-                      updateSelectedText({ fontFamily: preset.family, fontWeight: preset.weight })
-                    }}
-                  >
-                    {groupedTextFontPresets.map((group) => (
-                      <optgroup key={group.category} label={group.label}>
-                        {group.presets.map((preset) => (
-                          <option
-                            key={preset.id}
-                            value={preset.id}
-                            style={{ fontFamily: `"${preset.family}", "Pretendard", "Noto Sans KR", sans-serif` }}
-                          >
-                            {preset.label}
-                          </option>
+                <div className="propSection">
+                  <div className="propSectionTitle">{ui.selectedText}</div>
+                  <div className="propRow">
+                    <span className="propLabel">Font</span>
+                    <div className="propValue">
+                      <input
+                        id="text-font-search-panel"
+                        className="input"
+                        type="search"
+                        value={fontSearchQuery}
+                        onChange={(e) => setFontSearchQuery(e.target.value)}
+                        placeholder={ui.fontSearchPlaceholder}
+                        aria-label={ui.fontSearchPlaceholder}
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                  </div>
+                  <div className="propRow">
+                    <span className="propLabel">Preset</span>
+                    <div className="propValue">
+                      <select
+                        id="text-font-preset-panel"
+                        className="select"
+                        title={ui.fontPresetLabel}
+                        aria-label={ui.fontPresetLabel}
+                        disabled={selectedText.locked}
+                        value={resolveTextFontPreset(selectedText)}
+                        onChange={(e) => {
+                          const preset = TEXT_FONT_PRESETS.find((item) => item.id === e.target.value)
+                          if (!preset) return
+                          ensureGoogleWebFontLoaded(preset.family)
+                          updateSelectedText({ fontFamily: preset.family, fontWeight: preset.weight })
+                        }}
+                        style={{ flex: 1 }}
+                      >
+                        {groupedTextFontPresets.map((group) => (
+                          <optgroup key={group.category} label={group.label}>
+                            {group.presets.map((preset) => (
+                              <option
+                                key={preset.id}
+                                value={preset.id}
+                                style={{ fontFamily: `"${preset.family}", "Pretendard", "Noto Sans KR", sans-serif` }}
+                              >
+                                {preset.label}
+                              </option>
+                            ))}
+                          </optgroup>
                         ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                  <div className="alignToggleRow">
-                    <button className={`btn ${selectedText.align === 'left' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'left' })} aria-label={ui.alignLeft}>{ui.alignLeft}</button>
-                    <button className={`btn ${selectedText.align === 'center' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'center' })} aria-label={ui.alignCenter}>{ui.alignCenter}</button>
-                    <button className={`btn ${selectedText.align === 'right' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'right' })} aria-label={ui.alignRight}>{ui.alignRight}</button>
+                      </select>
+                    </div>
                   </div>
-                  <div className="weightPresetRow">
-                    <button className="btn" disabled={selectedText.locked} onClick={() => updateSelectedText({ fontWeight: 400 })} aria-label={ui.fontWeightRegular}>{ui.fontWeightRegular}</button>
-                    <button className="btn" disabled={selectedText.locked} onClick={() => updateSelectedText({ fontWeight: 700 })} aria-label={ui.fontWeightBold}>{ui.fontWeightBold}</button>
+                  <div className="propBtnGrid cols3" style={{ marginTop: 4 }}>
+                    <button className={`btn ${selectedText.align === 'left' ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'left' })} aria-label={ui.alignLeft}>{ui.alignLeft}</button>
+                    <button className={`btn ${selectedText.align === 'center' ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'center' })} aria-label={ui.alignCenter}>{ui.alignCenter}</button>
+                    <button className={`btn ${selectedText.align === 'right' ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'right' })} aria-label={ui.alignRight}>{ui.alignRight}</button>
                   </div>
-                  <button className={`btn textItalicBtn ${selectedText.fontStyle === 'italic' ? 'selected' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ fontStyle: selectedText.fontStyle === 'italic' ? 'normal' : 'italic' })} aria-label={ui.italicLabel}>{ui.italicLabel}</button>
-                  <div className="swatchRow">
-                    <label className="quickColor" title={ui.textColor} aria-label={ui.textColor}>
+                  <div className="propBtnGrid cols3" style={{ marginTop: 2 }}>
+                    <button className={`btn ${selectedText.fontWeight === 400 ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ fontWeight: 400 })} aria-label={ui.fontWeightRegular}>{ui.fontWeightRegular}</button>
+                    <button className={`btn ${selectedText.fontWeight === 700 ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ fontWeight: 700 })} aria-label={ui.fontWeightBold}>{ui.fontWeightBold}</button>
+                    <button className={`btn ${selectedText.fontStyle === 'italic' ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ fontStyle: selectedText.fontStyle === 'italic' ? 'normal' : 'italic' })} aria-label={ui.italicLabel}>{ui.italicLabel}</button>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* ── Text: Colors ── */}
+              {selectedText ? (
+                <div className="propSection">
+                  <div className="propSectionTitle">Color</div>
+                  <div className="propSwatchRow">
+                    <label className="propSwatch" title={ui.textColor} aria-label={ui.textColor}>
                       <input type="color" value={selectedText.fill} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ fill: e.target.value })} />
+                      <span className="propSwatchFill" style={{ background: selectedText.fill }} />
+                      <span className="propSwatchLabel">{ui.textColor}</span>
                     </label>
-                    <label className="quickColor" title={ui.textBorderColor} aria-label={ui.textBorderColor}>
+                    <label className="propSwatch" title={ui.textBorderColor} aria-label={ui.textBorderColor}>
                       <input type="color" value={resolveTextOutlineColor(selectedText)} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ outlineColor: e.target.value })} />
+                      <span className="propSwatchFill" style={{ background: resolveTextOutlineColor(selectedText) }} />
+                      <span className="propSwatchLabel">{ui.textBorderColor}</span>
                     </label>
-                    <label className="quickColor" title={ui.textBackgroundColor} aria-label={ui.textBackgroundColor}>
+                    <label className="propSwatch" title={ui.textBackgroundColor} aria-label={ui.textBackgroundColor}>
                       <input type="color" value={resolveTextBackgroundColor(selectedText)} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ backgroundColor: e.target.value })} />
+                      <span className="propSwatchFill" style={{ background: resolveTextBackgroundColor(selectedText) }} />
+                      <span className="propSwatchLabel">{ui.textBackgroundColor}</span>
                     </label>
                   </div>
-                  <label className="quickOpacity" title={ui.textBackgroundOpacity} aria-label={ui.textBackgroundOpacity}>
+                  <div className="propSliderRow" style={{ marginTop: 4 }}>
+                    <span className="propLabel">BG α</span>
                     <input
+                      className="smoothRange"
                       type="range"
                       min={0}
                       max={100}
@@ -8139,63 +8083,73 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                       disabled={selectedText.locked}
                       onChange={(e) => updateSelectedText({ backgroundOpacity: clamp(Number(e.target.value) / 100, 0, 1) })}
                     />
-                    <span>{Math.round(resolveTextBackgroundOpacity(selectedText) * 100)}%</span>
-                  </label>
+                    <span className="propSliderVal">{Math.round(resolveTextBackgroundOpacity(selectedText) * 100)}%</span>
+                  </div>
                 </div>
               ) : null}
+
+              {/* ── Text: Align Layers ── */}
               {selectedTextIds.length > 0 ? (
-                <div className="label">{ui.layerBulkActions}</div>
-              ) : null}
-              {selectedTextIds.length > 0 ? (
-                <div className="buttonRow layerBulkRow">
-                  <button className="btn ghost" onClick={() => alignSelectedTextLayers('left')}>{ui.layerAlignLeft}</button>
-                  <button className="btn ghost" onClick={() => alignSelectedTextLayers('center')}>{ui.layerAlignCenter}</button>
-                  <button className="btn ghost" onClick={() => alignSelectedTextLayers('right')}>{ui.layerAlignRight}</button>
-                  <button className="btn ghost" onClick={() => alignSelectedTextLayers('top')}>{ui.layerAlignTop}</button>
-                  <button className="btn ghost" onClick={() => alignSelectedTextLayers('middle')}>{ui.layerAlignMiddle}</button>
-                  <button className="btn ghost" onClick={() => alignSelectedTextLayers('bottom')}>{ui.layerAlignBottom}</button>
-                  <button className="btn ghost" onClick={duplicateSelectedTextLayers}>{ui.layerDuplicateSelected}</button>
+                <div className="propSection">
+                  <div className="propSectionTitle">{ui.layerBulkActions}</div>
+                  <div className="propBtnGrid cols3">
+                    <button className="btn" onClick={() => alignSelectedTextLayers('left')}>{ui.layerAlignLeft}</button>
+                    <button className="btn" onClick={() => alignSelectedTextLayers('center')}>{ui.layerAlignCenter}</button>
+                    <button className="btn" onClick={() => alignSelectedTextLayers('right')}>{ui.layerAlignRight}</button>
+                  </div>
+                  <div className="propBtnGrid cols3" style={{ marginTop: 2 }}>
+                    <button className="btn" onClick={() => alignSelectedTextLayers('top')}>{ui.layerAlignTop}</button>
+                    <button className="btn" onClick={() => alignSelectedTextLayers('middle')}>{ui.layerAlignMiddle}</button>
+                    <button className="btn" onClick={() => alignSelectedTextLayers('bottom')}>{ui.layerAlignBottom}</button>
+                  </div>
+                  <div className="propBtnGrid cols2" style={{ marginTop: 2 }}>
+                    <button className="btn" onClick={duplicateSelectedTextLayers}>{ui.layerDuplicateSelected}</button>
+                  </div>
                 </div>
               ) : null}
-              <div className="layerList layerListCompact">
-                {active && active.texts.length > 0 ? (
-                  active.texts.map((t, idx) => (
-                    <div key={t.id} className={`layerItem ${selectedTextIds.includes(t.id) ? 'active' : ''}`}>
-                      <button className="layerMain" onClick={(e) => { setTool('text'); selectTextLayer(t.id, e.shiftKey) }} title={t.text}>
-                        <span className="layerIndex">T{idx + 1}</span>
-                        <span className="layerName">{t.text || 'Text'}</span>
-                        {!t.visible ? <span className="layerTag">{ui.layerHidden}</span> : null}
-                        {t.locked ? <span className="layerTag">{ui.layerLocked}</span> : null}
-                      </button>
-                      <div className="layerActions">
-                        <button className="iconMini" onClick={() => toggleLayerVisible(t.id)} title={ui.showLayer} aria-label={ui.showLayer}>{t.visible ? '👁' : '🚫'}</button>
-                        <button className="iconMini" onClick={() => toggleLayerLocked(t.id)} title={ui.lockLayer} aria-label={ui.lockLayer}>{t.locked ? '🔒' : '🔓'}</button>
-                        <button className="iconMini" onClick={() => moveLayer(t.id, 'up')} title={ui.moveLayerUp} aria-label={ui.moveLayerUp}>↑</button>
-                        <button className="iconMini" onClick={() => moveLayer(t.id, 'down')} title={ui.moveLayerDown} aria-label={ui.moveLayerDown}>↓</button>
-                        <button
-                          className="iconMini dangerMini"
-                          onClick={() => {
-                            updateActiveWithHistory('Delete text layer', (a) => ({ ...a, texts: a.texts.filter((tt) => tt.id !== t.id) }))
-                            setSelectedTextIds((prev) => {
-                              const next = prev.filter((id) => id !== t.id)
-                              if (selectedTextId === t.id) setSelectedTextId(next[0] ?? null)
-                              return next
-                            })
-                          }}
-                          title={ui.deleteText}
-                          aria-label={ui.deleteText}
-                        >
-                          🗑
+
+              {/* ── Text: Layer List ── */}
+              <div className="propSection">
+                <div className="propSectionTitle">{ui.textLayers}</div>
+                <div className="propLayerList">
+                  {active && active.texts.length > 0 ? (
+                    active.texts.map((t, idx) => (
+                      <div key={t.id} className={`propLayerItem ${selectedTextIds.includes(t.id) ? 'active' : ''}`}>
+                        <button className="propLayerMain" onClick={(e) => { setTool('text'); selectTextLayer(t.id, e.shiftKey) }} title={t.text}>
+                          <span className="propLayerIndex">T{idx + 1}</span>
+                          <span className="propLayerName">{t.text || 'Text'}</span>
+                          {!t.visible ? <span className="propLayerTag">{ui.layerHidden}</span> : null}
+                          {t.locked ? <span className="propLayerTag">{ui.layerLocked}</span> : null}
                         </button>
+                        <div className="propLayerActions">
+                          <button className="propLayerBtn" onClick={() => toggleLayerVisible(t.id)} title={ui.showLayer} aria-label={ui.showLayer}>{t.visible ? '👁' : '🚫'}</button>
+                          <button className="propLayerBtn" onClick={() => toggleLayerLocked(t.id)} title={ui.lockLayer} aria-label={ui.lockLayer}>{t.locked ? '🔒' : '🔓'}</button>
+                          <button className="propLayerBtn" onClick={() => moveLayer(t.id, 'up')} title={ui.moveLayerUp} aria-label={ui.moveLayerUp}>↑</button>
+                          <button className="propLayerBtn" onClick={() => moveLayer(t.id, 'down')} title={ui.moveLayerDown} aria-label={ui.moveLayerDown}>↓</button>
+                          <button
+                            className="propLayerBtn propLayerDanger"
+                            onClick={() => {
+                              updateActiveWithHistory('Delete text layer', (a) => ({ ...a, texts: a.texts.filter((tt) => tt.id !== t.id) }))
+                              setSelectedTextIds((prev) => {
+                                const next = prev.filter((id) => id !== t.id)
+                                if (selectedTextId === t.id) setSelectedTextId(next[0] ?? null)
+                                return next
+                              })
+                            }}
+                            title={ui.deleteText}
+                            aria-label={ui.deleteText}
+                          >
+                            ✕
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="hint">{ui.noTextLayers}</div>
-                )}
+                    ))
+                  ) : (
+                    <div className="hint">{ui.noTextLayers}</div>
+                  )}
+                </div>
               </div>
-            </div>
-            ) : null}
+            </>) : null}
 
           </div>
           ) : null}
