@@ -484,8 +484,8 @@
 
 .toolbarLeft .toolBtn {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -493,7 +493,7 @@
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 18px;
   cursor: pointer;
   transition: all 80ms ease;
 }
@@ -539,7 +539,7 @@
 .app.tooltipDetailed .toolbarLeft .toolBtn::after { content: attr(data-tip) " (" attr(data-key) ")"; }
 
 .toolbarSep {
-  width: 24px;
+  width: 30px;
   height: 1px;
   background: var(--stroke);
   margin: 4px 0;

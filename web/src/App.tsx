@@ -8,7 +8,6 @@ import {
   faEraser,
   faFont,
   faHand,
-  faMagnifyingGlass,
   faObjectGroup,
   faPen,
   faPlus,
@@ -7791,10 +7790,6 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         </button>
         <button className={`toolBtn ${tool === 'hand' ? 'active' : ''}`} title={ui.toolHand} aria-label={ui.toolHand} data-tip={ui.toolHand} data-key="H" onClick={() => setTool('hand')} disabled={!active}>
           <FontAwesomeIcon icon={faHand} />
-        </button>
-        <div className="toolbarSep" />
-        <button className="toolBtn" title={ui.zoomReset} aria-label={ui.zoomReset} data-tip={ui.zoomReset} onClick={() => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) }} disabled={!active}>
-          <FontAwesomeIcon icon={faMagnifyingGlass} />
         </button>
       </div>
 
