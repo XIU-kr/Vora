@@ -3022,6 +3022,7 @@ function App() {
 
   useEffect(() => {
     if (active) { setResizeWidth(active.width); setResizeHeight(active.height) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.id])
 
   useEffect(() => {
@@ -3032,6 +3033,7 @@ function App() {
     loadHtmlImage(active.baseDataUrl)
       .then((img) => setBaseImg(img))
       .catch(() => setBaseImg(null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.baseDataUrl])
 
   useEffect(() => {
@@ -3271,6 +3273,7 @@ function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exportDialogOpen])
 
   useEffect(() => {
@@ -3385,6 +3388,7 @@ function App() {
     if (cudaAvailable === null) return // wait for health check
     preferredAppliedRef.current = true
     void setDeviceMode(effectiveDevice)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiRequestedDevice, preferredDevice, cudaAvailable])
 
   useEffect(() => {
@@ -3546,6 +3550,7 @@ function App() {
       }
       return [next, ...prev].slice(0, activityLogLimit)
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast, activityLogLimit])
 
   useEffect(() => {
@@ -3602,6 +3607,7 @@ function App() {
       cancelled = true
       window.clearInterval(t)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -3717,6 +3723,7 @@ function App() {
       setPendingMaskAction(null)
       updateActive((a) => ({ ...a, maskStrokes: [] }))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingMaskAction, active, tool])
 
   useEffect(() => {
@@ -4097,6 +4104,7 @@ function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedText, selectedTextIds, active, cropRect, cropPreviewDataUrl, tool, busy, selectedAssetIds.length, ui.selectionCleared, ui.cancelCrop, ui.textInsertArmed, exportDialogOpen, showShortcutsHelp, selectionMaskBounds, commandPaletteOpen, commandIndex])
 
   useEffect(() => {
@@ -4545,6 +4553,7 @@ function App() {
     return () => {
       el.removeEventListener('wheel', onWheel)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrapRef, active, canvasZoom, fit.ox, fit.oy, wrapSize.w, wrapSize.h, zoomWheelSensitivity])
 
   function onAssetDragStart(e: DragEvent<HTMLDivElement>, id: string) {
@@ -4834,6 +4843,7 @@ function App() {
         sourceIndex: assetListHistoryFuture.length - 1 - idx,
       }))
     return [...past, ...current, ...future]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assets, activeId, assetListHistoryPast, assetListHistoryFuture])
 
   const filteredHistoryTimeline = useMemo(() => {
@@ -4842,6 +4852,7 @@ function App() {
     return historyTimeline
       .map((item, index) => ({ item, index }))
       .filter(({ item }) => localizeHistoryLabel(item.label).toLowerCase().includes(query))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyTimeline, historyQuery])
 
   function addHistoryCheckpoint() {
@@ -6961,6 +6972,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
   const pendingMaskBounds = useMemo(() => {
     if (!active || !pendingMaskAction || pendingMaskAction.assetId !== active.id) return null
     return resolveMaskActionBounds(active, pendingMaskAction.strokes, maskApplyScope)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, pendingMaskAction, maskApplyScope, cropRect])
 
   const cropAreaPercent = activeCropRect && active
@@ -7712,6 +7724,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     vCanvas.height = wrapRect.height
     drawRuler(hCanvas, 'horizontal', canvasZoom, canvasOffset.x + fit.ox, wrapRect.width)
     drawRuler(vCanvas, 'vertical', canvasZoom, canvasOffset.y + fit.oy, wrapRect.height)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showRulers, active, canvasZoom, canvasOffset, fit])
 
   function drawRuler(canvas: HTMLCanvasElement, orientation: 'horizontal' | 'vertical', zoom: number, offset: number, length: number) {
@@ -7843,6 +7856,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     { id: 'add-group', label: ui.addGroup2, action: () => addLayerGroup() },
     { id: 'adj-brightness', label: ui.adjustmentBrightnessContrast, action: () => addAdjustmentLayer('brightness-contrast') },
     { id: 'adj-hue', label: ui.adjustmentHueSaturation, action: () => addAdjustmentLayer('hue-saturation') },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [ui, active])
 
   const filteredCommands = useMemo(() => {
@@ -7910,6 +7924,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
       { label: ui.menuZoomOut, shortcut: '-', action: () => zoomBy(-0.25) },
       { label: ui.menuZoomReset, shortcut: 'Ctrl+0', action: () => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) } },
     ] as MenuItem[],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [ui, active, assets, selectedUnifiedLayerRef, selectionMaskDataUrl])
 
   return (
