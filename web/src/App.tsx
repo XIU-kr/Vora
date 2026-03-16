@@ -2423,6 +2423,7 @@ function App() {
   const [eyedropperColor, setEyedropperColor] = useState('#000000')
   const [tempAdjustments, setTempAdjustments] = useState<ImageAdjustments>({ ...DEFAULT_ADJUSTMENTS })
   const imageLayerInputRef = useRef<HTMLInputElement>(null)
+  const menuImportInputRef = useRef<HTMLInputElement>(null)
   // ── Menu bar state ──
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const menuBarRef = useRef<HTMLDivElement>(null)
@@ -7869,7 +7870,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
   const menuDefinitions = useMemo(() => ({
     file: [
-      { label: ui.import, action: () => document.querySelector<HTMLInputElement>('.optionsBar input[type="file"]')?.click() },
+      { label: ui.import, action: () => menuImportInputRef.current?.click() },
       { label: ui.exportNow, action: () => setExportDialogOpen(true), disabled: assets.length === 0 },
       { label: ui.settings, action: () => openSettings() },
     ] as MenuItem[],
@@ -8024,6 +8025,9 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           ))}
         </div>
       ) : null}
+
+      {/* Hidden file input for menu bar import */}
+      <input ref={menuImportInputRef} type="file" multiple accept="image/*,application/pdf,.pdf" style={{ display: 'none' }} onChange={(e) => void handleFiles(e.target.files)} />
 
       {/* ═══ Options Bar (Photoshop-style) ═══ */}
       <div className="optionsBar">
