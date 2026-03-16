@@ -255,77 +255,308 @@
 .unsavedBadge.tierWarn { border-color: rgba(255, 156, 80, 0.45); background: rgba(255, 156, 80, 0.14); color: #ffe0c0; }
 .unsavedBadge.tierHigh { border-color: rgba(255, 124, 124, 0.5); background: rgba(255, 124, 124, 0.16); color: #ffd2d2; }
 
-/* ─── Options bar ─── */
+/* ─── Options bar (Photoshop-style) ─── */
 .optionsBar {
   grid-area: options;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  background: var(--bg-toolbar);
-  border-bottom: 1px solid var(--stroke);
+  gap: 0;
+  padding: 0;
+  background: linear-gradient(180deg, rgba(60, 60, 64, 0.95) 0%, rgba(50, 50, 54, 0.98) 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
   overflow-x: auto;
   overflow-y: hidden;
   z-index: 18;
+  font-size: 11px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
-.optionsBar::-webkit-scrollbar { height: 3px; }
-.optionsBar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 999px; }
+.optionsBar::-webkit-scrollbar { height: 2px; }
+.optionsBar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
 
-.optionsDivider {
-  width: 1px;
-  height: 22px;
-  background: var(--stroke);
-  flex-shrink: 0;
-}
-
-.optionsGroup {
+/* ── Tool indicator (left side) ── */
+.obToolIndicator {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 0 10px;
+  height: 100%;
+  flex-shrink: 0;
+  border-right: 1px solid rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.obToolIndicator:hover { background: rgba(0, 0, 0, 0.14); }
+.obToolEmpty { opacity: 0.5; }
+
+.obToolIcon {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  width: 14px;
+  text-align: center;
+}
+
+.obToolName {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  text-transform: capitalize;
+}
+
+/* ── Divider ── */
+.obDivider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0 6px;
   flex-shrink: 0;
 }
 
-.optionsLabel {
-  font-size: 13px;
-  color: var(--muted);
+/* ── Field group ── */
+.obFieldGroup {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.obFieldLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
   white-space: nowrap;
   flex-shrink: 0;
+  cursor: default;
+  user-select: none;
+  letter-spacing: 0.2px;
 }
 
-.optionsBar .btn {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 13px;
+/* ── Compact range slider ── */
+.obRange {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.optionsBar .input,
-.optionsBar .select {
-  min-height: 26px;
-  height: 26px;
-  padding: 4px 8px;
-  font-size: 13px;
-  min-width: 0;
-  width: auto;
+.obRange::-webkit-slider-runnable-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  border: none;
 }
 
-.optionsBar .smoothRange {
-  width: 100px;
-  height: 26px;
+.obRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(200, 200, 210, 0.95);
+  border: 1.5px solid rgba(100, 100, 110, 0.8);
+  margin-top: -3.5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: background 80ms ease;
 }
 
-.optionsBrushRow {
+.obRange::-webkit-slider-thumb:hover {
+  background: #fff;
+}
+
+.obRange::-moz-range-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  border: none;
+}
+
+.obRange::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(200, 200, 210, 0.95);
+  border: 1.5px solid rgba(100, 100, 110, 0.8);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.obRangeShort { width: 60px; }
+
+/* ── Number input ── */
+.obNumInput {
+  width: 42px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-family: inherit;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding: 0 3px;
+  outline: none;
+  transition: border-color 80ms ease;
+}
+
+.obNumInput:focus {
+  border-color: rgba(108, 140, 255, 0.5);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.obNumInput::-webkit-inner-spin-button,
+.obNumInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.obUnit {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.obValDisplay {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
+  text-align: right;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* ── Segment control (Photoshop toggle group) ── */
+.obSegment {
+  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.obSegBtn {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 80ms ease, color 80ms ease;
+  height: 22px;
+  line-height: 18px;
+}
+
+.obSegBtn:last-child { border-right: none; }
+.obSegBtn:hover { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.8); }
+
+.obSegBtn.active {
+  background: rgba(108, 140, 255, 0.2);
+  color: #c0cdff;
+  box-shadow: inset 0 -1px 0 rgba(108, 140, 255, 0.4);
+}
+
+/* ── Action button ── */
+.obActionBtn {
+  padding: 2px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  height: 22px;
+  line-height: 16px;
+  transition: background 80ms ease, color 80ms ease, border-color 80ms ease;
+}
+
+.obActionBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.obActionBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.obActionPrimary {
+  background: rgba(108, 140, 255, 0.15);
+  border-color: rgba(108, 140, 255, 0.3);
+  color: #b8c8ff;
+}
+
+.obActionPrimary:hover:not(:disabled) {
+  background: rgba(108, 140, 255, 0.25);
+  border-color: rgba(108, 140, 255, 0.45);
+  color: #d0ddff;
+}
+
+/* ── Color swatch (inline) ── */
+.obColorSwatch {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.obColorSwatch:hover { border-color: rgba(255, 255, 255, 0.25); }
+
+.obSwatchLarge { width: 26px; height: 26px; }
+
+.obColorSwatch input {
+  position: absolute;
+  inset: -4px;
+  width: calc(100% + 8px);
+  height: calc(100% + 8px);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.obSwatchFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ── Canvas info (right-aligned) ── */
+.obCanvasInfo {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 0 10px;
+  flex-shrink: 0;
 }
 
-.optionsBrushInput {
-  width: 52px !important;
-  text-align: right;
+.obInfoText {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+  user-select: none;
 }
 
+/* ── Legacy compat ── */
 .optionsModeTag {
   display: inline-flex;
   align-items: center;
@@ -3268,7 +3499,10 @@
 
 /* ─── Density compact mode ─── */
 .densityCompact .headerBar { padding: 0 10px; }
-.densityCompact .optionsBar { padding: 0 8px; }
+.densityCompact .optionsBar { padding: 0; }
+.densityCompact .obFieldGroup { gap: 3px; padding: 0 3px; }
+.densityCompact .obDivider { margin: 0 4px; }
+.densityCompact .obToolIndicator { padding: 0 7px; }
 .densityCompact .btn { min-height: var(--control-h-compact); padding: 4px 8px; }
 .densityCompact .input,
 .densityCompact .select { min-height: var(--control-h-compact); height: var(--control-h-compact); }

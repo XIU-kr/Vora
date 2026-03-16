@@ -8025,82 +8025,270 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         </div>
       ) : null}
 
-      {/* ═══ Options Bar ═══ */}
+      {/* ═══ Options Bar (Photoshop-style) ═══ */}
       <div className="optionsBar">
-        <div className="optionsGroup">
-          <label className="btn ghost">
-            {ui.import}
-            <input
-              type="file"
-              multiple
-              accept="image/*,application/pdf,.pdf"
-              onChange={(e) => void handleFiles(e.target.files)}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <button className="btn ghost" onClick={() => {
-            if (!hasSelectedAssets && pendingExportScope === 'selected') {
-              setPendingExportScope('current')
-            }
-            setExportDialogOpen(true)
-          }} disabled={assets.length === 0 || !!busy}>{ui.exportNow}</button>
-        </div>
-        <div className="optionsDivider" />
-        {active ? (
-          <span className="optionsModeTag">
-            {tool === 'text' ? ui.modeText : tool === 'crop' ? ui.modeCrop : tool === 'move' ? ui.modeMove : tool === 'restore' ? ui.modeRestore : tool === 'select' ? ui.modeSelect : tool === 'pen' ? ui.modePen : tool === 'shape' ? ui.modeShape : tool === 'blur' ? ui.modeBlur : tool === 'dodge' ? ui.modeDodge : tool === 'eyedropper' ? ui.modeEyedropper : tool === 'hand' ? ui.modeHand : tool === 'adjust' ? ui.modeAdjust : ui.modeEraser}
-          </span>
-        ) : null}
+        {/* ── Active tool indicator ── */}
+        {active ? (() => {
+          const obIconMap: Record<Tool, typeof faWandMagicSparkles> = {
+            restore: faWandMagicSparkles, eraser: faEraser, select: faObjectGroup, move: faArrowsUpDownLeftRight,
+            hand: faHand, text: faFont, pen: faPen, shape: faShapes, crop: faCropSimple,
+            blur: faDroplet, dodge: faSun, adjust: faSliders, eyedropper: faEyeDropper,
+          }
+          const obLabelMap: Record<Tool, string> = {
+            restore: ui.modeRestore, eraser: ui.modeEraser, select: ui.modeSelect, move: ui.modeMove,
+            hand: ui.modeHand, text: ui.modeText, pen: ui.modePen, shape: ui.modeShape,
+            crop: ui.modeCrop, blur: ui.modeBlur, dodge: ui.modeDodge, adjust: ui.modeAdjust, eyedropper: ui.modeEyedropper,
+          }
+          return (
+            <div className="obToolIndicator">
+              <FontAwesomeIcon icon={obIconMap[tool]} className="obToolIcon" />
+              <span className="obToolName">{obLabelMap[tool]}</span>
+            </div>
+          )
+        })() : (
+          <div className="obToolIndicator obToolEmpty">
+            <span className="obToolName" style={{ color: 'var(--muted)' }}>{ui.import}</span>
+          </div>
+        )}
+        <div className="obDivider" />
+
+        {/* ── Restore / Eraser: brush size + inline range ── */}
         {active && (tool === 'restore' || tool === 'eraser') ? (
-          <div className="optionsGroup optionsBrushRow">
-            <span className="optionsLabel">{ui.brushSize}</span>
-            <input
-              className="input smoothRange"
-              type="range"
-              min={0}
-              max={BRUSH_SLIDER_MAX}
-              step={1}
-              value={brushSliderValue}
-              onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))}
-            />
-            <input
-              className="input optionsBrushInput"
-              type="number"
-              min={BRUSH_MIN}
-              max={BRUSH_MAX}
-              value={brushSize}
-              onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))}
-            />
-            <span className="optionsLabel">{brushSize}px</span>
-          </div>
+          <>
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.brushSize}</span>
+              <input className="obRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+              <input className="obNumInput" type="number" min={BRUSH_MIN} max={BRUSH_MAX} value={brushSize} onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))} />
+              <span className="obUnit">px</span>
+            </div>
+          </>
         ) : null}
+
+        {/* ── Select: mode segment + auto bg remove ── */}
         {active && tool === 'select' ? (
-          <div className="optionsGroup">
-            <button className={`btn ghost ${selectMode === 'ai' ? 'active' : ''}`} onClick={() => setSelectMode('ai')}>{ui.selectModeAI}</button>
-            <button className={`btn ghost ${selectMode === 'rect' ? 'active' : ''}`} onClick={() => setSelectMode('rect')}>{ui.selectModeRect}</button>
-            <button className={`btn ghost ${selectMode === 'ellipse' ? 'active' : ''}`} onClick={() => setSelectMode('ellipse')}>{ui.selectModeEllipse}</button>
-            <button className={`btn ghost ${selectMode === 'lasso' ? 'active' : ''}`} onClick={() => setSelectMode('lasso')}>{ui.selectModeLasso}</button>
-            <div className="optionsDivider" />
-            <button className="btn ghost primary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
-          </div>
+          <>
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propMode}</span>
+              <div className="obSegment">
+                <button className={`obSegBtn ${selectMode === 'ai' ? 'active' : ''}`} onClick={() => setSelectMode('ai')}>{ui.selectModeAI}</button>
+                <button className={`obSegBtn ${selectMode === 'rect' ? 'active' : ''}`} onClick={() => setSelectMode('rect')}>{ui.selectModeRect}</button>
+                <button className={`obSegBtn ${selectMode === 'ellipse' ? 'active' : ''}`} onClick={() => setSelectMode('ellipse')}>{ui.selectModeEllipse}</button>
+                <button className={`obSegBtn ${selectMode === 'lasso' ? 'active' : ''}`} onClick={() => setSelectMode('lasso')}>{ui.selectModeLasso}</button>
+              </div>
+            </div>
+            <div className="obDivider" />
+            <button className="obActionBtn obActionPrimary" disabled={!!busy} onClick={() => void autoRemoveBackground()}>{ui.autoBgRemove}</button>
+          </>
         ) : null}
+
+        {/* ── Move: transform actions ── */}
         {active && tool === 'move' ? (
-          <div className="optionsGroup">
-            <button className="btn ghost" disabled={!!busy} onClick={() => void rotateImage(90)}>↻ 90°</button>
-            <button className="btn ghost" disabled={!!busy} onClick={() => void rotateImage(270)}>↺ 90°</button>
-            <button className="btn ghost" disabled={!!busy} onClick={() => void flipImage('h')}>{ui.flipH}</button>
-            <button className="btn ghost" disabled={!!busy} onClick={() => void flipImage('v')}>{ui.flipV}</button>
+          <>
+            <div className="obFieldGroup">
+              <button className="obActionBtn" disabled={!!busy} onClick={() => void rotateImage(90)}>↻ 90°</button>
+              <button className="obActionBtn" disabled={!!busy} onClick={() => void rotateImage(270)}>↺ 90°</button>
+              <div className="obDivider" />
+              <button className="obActionBtn" disabled={!!busy} onClick={() => void flipImage('h')}>{ui.flipH}</button>
+              <button className="obActionBtn" disabled={!!busy} onClick={() => void flipImage('v')}>{ui.flipV}</button>
+            </div>
+          </>
+        ) : null}
+
+        {/* ── Crop: presets + apply/cancel ── */}
+        {active && tool === 'crop' ? (
+          <>
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propPreset}</span>
+              <div className="obSegment">
+                <button className={`obSegBtn ${cropPreset === 'free' ? 'active' : ''}`} onClick={() => applyCropPreset('free')}>{ui.cropPresetFree}</button>
+                <button className={`obSegBtn ${cropPreset === '1:1' ? 'active' : ''}`} onClick={() => applyCropPreset('1:1')}>1:1</button>
+                <button className={`obSegBtn ${cropPreset === '4:3' ? 'active' : ''}`} onClick={() => applyCropPreset('4:3')}>4:3</button>
+                <button className={`obSegBtn ${cropPreset === '16:9' ? 'active' : ''}`} onClick={() => applyCropPreset('16:9')}>16:9</button>
+              </div>
+            </div>
+            <div className="obDivider" />
+            <button className="obActionBtn obActionPrimary" disabled={!active || !activeCropRect || !!busy} onClick={() => void applyCrop()}>{ui.applyCrop}</button>
+            <button className="obActionBtn" disabled={!activeCropRect} onClick={() => clearCropSelection(ui.cancelCrop)}>{ui.cancelCrop}</button>
+          </>
+        ) : null}
+
+        {/* ── Pen: color swatch + brush size + opacity ── */}
+        {active && tool === 'pen' ? (
+          <>
+            <div className="obFieldGroup">
+              <label className="obColorSwatch" title={ui.penColor}>
+                <input type="color" value={penColor} onChange={(e) => setPenColor(e.target.value)} />
+                <span className="obSwatchFill" style={{ background: penColor }} />
+              </label>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propSize}</span>
+              <input className="obRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+              <input className="obNumInput" type="number" min={BRUSH_MIN} max={BRUSH_MAX} value={brushSize} onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))} />
+              <span className="obUnit">px</span>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propOpacity}</span>
+              <input className="obRange" type="range" min={0} max={100} step={1} value={Math.round(penOpacity * 100)} onChange={(e) => setPenOpacity(clamp(Number(e.target.value) / 100, 0, 1))} />
+              <span className="obValDisplay">{Math.round(penOpacity * 100)}%</span>
+            </div>
+          </>
+        ) : null}
+
+        {/* ── Shape: type segment + fill/stroke swatches + stroke width + opacity ── */}
+        {active && tool === 'shape' ? (
+          <>
+            <div className="obFieldGroup">
+              <div className="obSegment">
+                <button className={`obSegBtn ${shapeType === 'rect' ? 'active' : ''}`} onClick={() => setShapeType('rect')}>{ui.shapeTypeRect}</button>
+                <button className={`obSegBtn ${shapeType === 'ellipse' ? 'active' : ''}`} onClick={() => setShapeType('ellipse')}>{ui.shapeTypeEllipse}</button>
+                <button className={`obSegBtn ${shapeType === 'line' ? 'active' : ''}`} onClick={() => setShapeType('line')}>{ui.shapeTypeLine}</button>
+                <button className={`obSegBtn ${shapeType === 'arrow' ? 'active' : ''}`} onClick={() => setShapeType('arrow')}>{ui.shapeTypeArrow}</button>
+              </div>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.shapeFill}</span>
+              <label className="obColorSwatch" title={ui.shapeFill}>
+                <input type="color" value={shapeFill === 'transparent' ? '#000000' : shapeFill} onChange={(e) => setShapeFill(e.target.value)} />
+                <span className="obSwatchFill" style={{ background: shapeFill === 'transparent' ? 'repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50%/6px 6px' : shapeFill }} />
+              </label>
+              <span className="obFieldLabel">{ui.shapeStroke}</span>
+              <label className="obColorSwatch" title={ui.shapeStroke}>
+                <input type="color" value={shapeStroke} onChange={(e) => setShapeStroke(e.target.value)} />
+                <span className="obSwatchFill" style={{ background: shapeStroke }} />
+              </label>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.shapeStrokeWidth}</span>
+              <input className="obRange obRangeShort" type="range" min={0} max={20} step={1} value={shapeStrokeWidth} onChange={(e) => setShapeStrokeWidth(Number(e.target.value))} />
+              <span className="obValDisplay">{shapeStrokeWidth}px</span>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propOpacity}</span>
+              <input className="obRange obRangeShort" type="range" min={0} max={100} step={1} value={Math.round(shapeOpacity * 100)} onChange={(e) => setShapeOpacity(clamp(Number(e.target.value) / 100, 0, 1))} />
+              <span className="obValDisplay">{Math.round(shapeOpacity * 100)}%</span>
+            </div>
+          </>
+        ) : null}
+
+        {/* ── Blur/Sharpen: mode segment + size + strength ── */}
+        {active && tool === 'blur' ? (
+          <>
+            <div className="obFieldGroup">
+              <div className="obSegment">
+                <button className={`obSegBtn ${blurMode === 'blur' ? 'active' : ''}`} onClick={() => setBlurMode('blur')}>{ui.blurModeBlur}</button>
+                <button className={`obSegBtn ${blurMode === 'sharpen' ? 'active' : ''}`} onClick={() => setBlurMode('sharpen')}>{ui.blurModeSharpen}</button>
+              </div>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propSize}</span>
+              <input className="obRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+              <input className="obNumInput" type="number" min={BRUSH_MIN} max={BRUSH_MAX} value={brushSize} onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))} />
+              <span className="obUnit">px</span>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.blurStrength}</span>
+              <input className="obRange obRangeShort" type="range" min={1} max={30} step={1} value={blurStrength} onChange={(e) => setBlurStrength(Number(e.target.value))} />
+              <span className="obValDisplay">{blurStrength}</span>
+            </div>
+          </>
+        ) : null}
+
+        {/* ── Dodge/Burn: mode segment + size + strength ── */}
+        {active && tool === 'dodge' ? (
+          <>
+            <div className="obFieldGroup">
+              <div className="obSegment">
+                <button className={`obSegBtn ${dodgeMode === 'dodge' ? 'active' : ''}`} onClick={() => setDodgeMode('dodge')}>{ui.dodgeModeDodge}</button>
+                <button className={`obSegBtn ${dodgeMode === 'burn' ? 'active' : ''}`} onClick={() => setDodgeMode('burn')}>{ui.dodgeModeBurn}</button>
+              </div>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propSize}</span>
+              <input className="obRange" type="range" min={0} max={BRUSH_SLIDER_MAX} step={1} value={brushSliderValue} onChange={(e) => setBrushSize(sliderToBrush(Number(e.target.value)))} />
+              <input className="obNumInput" type="number" min={BRUSH_MIN} max={BRUSH_MAX} value={brushSize} onChange={(e) => setBrushSize(clamp(Number(e.target.value) || BRUSH_MIN, BRUSH_MIN, BRUSH_MAX))} />
+              <span className="obUnit">px</span>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.dodgeStrength}</span>
+              <input className="obRange obRangeShort" type="range" min={1} max={80} step={1} value={dodgeStrength} onChange={(e) => setDodgeStrength(Number(e.target.value))} />
+              <span className="obValDisplay">{dodgeStrength}</span>
+            </div>
+          </>
+        ) : null}
+
+        {/* ── Text: font quick select + color + size ── */}
+        {active && tool === 'text' && selectedText ? (
+          <>
+            <div className="obFieldGroup">
+              <label className="obColorSwatch" title={ui.textColor}>
+                <input type="color" value={selectedText.fill} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ fill: e.target.value })} />
+                <span className="obSwatchFill" style={{ background: selectedText.fill }} />
+              </label>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propSize}</span>
+              <input className="obNumInput" type="number" min={1} max={999} value={selectedText.fontSize} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ fontSize: clamp(Number(e.target.value) || 16, 1, 999) })} />
+              <span className="obUnit">px</span>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <div className="obSegment">
+                <button className={`obSegBtn ${selectedText.align === 'left' ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'left' })}>⊣</button>
+                <button className={`obSegBtn ${selectedText.align === 'center' ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'center' })}>⊡</button>
+                <button className={`obSegBtn ${selectedText.align === 'right' ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ align: 'right' })}>⊢</button>
+              </div>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <div className="obSegment">
+                <button className={`obSegBtn ${selectedText.fontWeight === 700 ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ fontWeight: selectedText.fontWeight === 700 ? 400 : 700 })} style={{ fontWeight: 700 }}>B</button>
+                <button className={`obSegBtn ${selectedText.fontStyle === 'italic' ? 'active' : ''}`} disabled={selectedText.locked} onClick={() => updateSelectedText({ fontStyle: selectedText.fontStyle === 'italic' ? 'normal' : 'italic' })} style={{ fontStyle: 'italic' }}>I</button>
+              </div>
+            </div>
+            <div className="obDivider" />
+            <div className="obFieldGroup">
+              <span className="obFieldLabel">{ui.propOpacity}</span>
+              <input className="obRange obRangeShort" type="range" min={0} max={100} step={1} value={Math.round(selectedText.opacity * 100)} disabled={selectedText.locked} onChange={(e) => updateSelectedText({ opacity: clamp(Number(e.target.value) / 100, 0, 1) })} />
+              <span className="obValDisplay">{Math.round(selectedText.opacity * 100)}%</span>
+            </div>
+          </>
+        ) : null}
+
+        {/* ── Adjust: mode indicator ── */}
+        {active && tool === 'adjust' ? (
+          <div className="obFieldGroup">
+            <span className="obFieldLabel" style={{ color: 'var(--text)' }}>{ui.modeAdjust}</span>
           </div>
         ) : null}
-        {active && tool === 'crop' ? (
-          <div className="optionsGroup">
-            <button className={`btn ghost ${cropPreset === 'free' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('free')}>{ui.cropPresetFree}</button>
-            <button className={`btn ghost ${cropPreset === '1:1' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('1:1')}>{ui.cropPresetSquare}</button>
-            <button className={`btn ghost ${cropPreset === '4:3' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('4:3')}>{ui.cropPresetFourThree}</button>
-            <button className={`btn ghost ${cropPreset === '16:9' ? 'selected' : ''}`} disabled={!active} onClick={() => applyCropPreset('16:9')}>{ui.cropPresetSixteenNine}</button>
-            <div className="optionsDivider" />
-            <button className="btn ghost primary" disabled={!active || !activeCropRect || !!busy} onClick={() => void applyCrop()}>{ui.applyCrop}</button>
-            <button className="btn ghost" disabled={!activeCropRect} onClick={() => clearCropSelection(ui.cancelCrop)}>{ui.cancelCrop}</button>
+
+        {/* ── Eyedropper: indicator ── */}
+        {active && tool === 'eyedropper' ? (
+          <div className="obFieldGroup">
+            <label className="obColorSwatch obSwatchLarge" title={ui.toolEyedropper}>
+              <span className="obSwatchFill" style={{ background: foregroundColor }} />
+            </label>
+            <span className="obFieldLabel">{foregroundColor}</span>
+          </div>
+        ) : null}
+
+        {/* ── Hand: no options ── */}
+
+        {/* ── Right side: canvas info ── */}
+        {active ? (
+          <div className="obCanvasInfo">
+            <span className="obInfoText">{active.width}×{active.height}</span>
+            <span className="obInfoText">{Math.round(zoom * 100)}%</span>
           </div>
         ) : null}
       </div>
