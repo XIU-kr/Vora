@@ -35,19 +35,21 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
 
+# Install uv for fast Python package management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
 # Create venv and install heavy torch separately for caching
-RUN python3 -m venv /opt/venv-lama \
-  && /opt/venv-lama/bin/python -m pip install --no-cache-dir --upgrade "pip>=24.3.1" "setuptools>=78.1.1" "wheel>=0.46.3" \
-  && /opt/venv-lama/bin/python -m pip install --no-cache-dir \
+RUN uv venv /opt/venv-lama \
+  && uv pip install --python /opt/venv-lama/bin/python --no-cache \
     --index-url https://download.pytorch.org/whl/cu128 \
     torch==2.9.1 torchvision==0.24.1
 
 # Install lighter python deps
-RUN /opt/venv-lama/bin/python -m pip install --no-cache-dir \
+RUN uv pip install --python /opt/venv-lama/bin/python --no-cache \
     fire==0.5.0 "pillow>=11.0.0" "filelock>=3.20.3" numpy==1.26.4 opencv-python==4.10.0.84 "transformers>=4.45.0" \
-  && /opt/venv-lama/bin/python -m pip install --no-cache-dir \
-    --no-deps simple-lama-inpainting==0.1.2 \
-  && SAM2_BUILD_CUDA=0 /opt/venv-lama/bin/python -m pip install --no-cache-dir \
+  && uv pip install --python /opt/venv-lama/bin/python --no-cache --no-deps \
+    simple-lama-inpainting==0.1.2 \
+  && SAM2_BUILD_CUDA=0 uv pip install --python /opt/venv-lama/bin/python --no-cache \
     hydra-core==1.3.2 iopath==0.1.10 omegaconf==2.3.0 sam2
 
 COPY --from=server-build /src/server/package.json /app/server/package.json
