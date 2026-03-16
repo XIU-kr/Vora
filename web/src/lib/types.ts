@@ -88,6 +88,11 @@ export type LayerGroup = {
   collapsed: boolean
 }
 
+export type UnifiedLayerRef = {
+  type: 'text' | 'image'
+  id: string
+}
+
 export type HistoryEntry = {
   label: string
   snapshot: string
@@ -106,5 +111,6 @@ export type PageAsset = {
   drawings: DrawingStroke[]
   shapes: ShapeItem[]
   imageLayers: ImageLayerItem[]
+  layerOrder: UnifiedLayerRef[]
   adjustments: ImageAdjustments
 }

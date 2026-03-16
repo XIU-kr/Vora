@@ -25,7 +25,7 @@ import { jsPDF } from 'jspdf'
 import PptxGenJS from 'pptxgenjs'
 
 import './App.css'
-import type { BlurMode, DodgeMode, DrawingStroke, ImageAdjustments, ImageLayerItem, LayerGroup, MaskStroke, PageAsset, ShapeItem, ShapeType, TextItem, Tool } from './lib/types'
+import type { BlurMode, DodgeMode, DrawingStroke, ImageAdjustments, ImageLayerItem, LayerGroup, MaskStroke, PageAsset, ShapeItem, ShapeType, TextItem, Tool, UnifiedLayerRef } from './lib/types'
 import { importImageFile, importPdfFile } from './lib/importers'
 import { inpaintViaApi, segmentPointViaApi } from './lib/api'
 import { dataUrlToBlob, downloadBlob } from './lib/download'
@@ -563,8 +563,13 @@ async function renderAssetToDataUrl(
 
   layer.add(new Konva.Image({ image: baseImg, x: 0, y: 0, width: asset.width, height: asset.height }))
 
-  // Render image layers
-  for (const il of (asset.imageLayers ?? [])) {
+  // Render image layers (ordered by layerOrder)
+  const imageOrder = (asset.layerOrder ?? []).filter((r) => r.type === 'image')
+  const imageMap = new Map((asset.imageLayers ?? []).map((il) => [il.id, il]))
+  const orderedIL = imageOrder.length > 0
+    ? imageOrder.map((r) => imageMap.get(r.id)).filter((il): il is ImageLayerItem => !!il)
+    : (asset.imageLayers ?? [])
+  for (const il of orderedIL) {
     if (!il.visible) continue
     const ilImg = await loadHtmlImage(il.dataUrl)
     layer.add(new Konva.Image({
@@ -614,7 +619,13 @@ async function renderAssetToDataUrl(
     }
   }
 
-  for (const t of asset.texts) {
+  // Order texts by layerOrder
+  const textOrder = (asset.layerOrder ?? []).filter((r) => r.type === 'text')
+  const textMap = new Map(asset.texts.map((t) => [t.id, t]))
+  const orderedTL = textOrder.length > 0
+    ? textOrder.map((r) => textMap.get(r.id)).filter((t): t is TextItem => !!t)
+    : asset.texts
+  for (const t of orderedTL) {
     if (!t.visible) continue
     const box = estimateTextBoxForAsset(t.text, t, asset)
     const padX = 8
@@ -1601,6 +1612,16 @@ const UI = {
     historyAddImageLayer: '이미지 레이어 추가',
     historyRemoveImageLayer: '이미지 레이어 삭제',
     historyFlattenImageLayers: '이미지 레이어 병합',
+    layerPanelTitle: '레이어',
+    layerBackground: '배경',
+    layerImage: '이미지',
+    layerText: '텍스트',
+    layerAddImage: '이미지 추가',
+    layerAddText: '텍스트 추가',
+    layerDeleteSelected: '선택 레이어 삭제',
+    layerFlatten: '레이어 병합',
+    layerOpacity: '불투명도',
+    layerMoveOrder: '레이어 순서 변경',
   },
   en: {
     tag: 'Image/PDF editor',
@@ -2138,6 +2159,16 @@ const UI = {
     historyAddImageLayer: 'Add Image Layer',
     historyRemoveImageLayer: 'Remove Image Layer',
     historyFlattenImageLayers: 'Flatten Image Layers',
+    layerPanelTitle: 'Layers',
+    layerBackground: 'Background',
+    layerImage: 'Image',
+    layerText: 'Text',
+    layerAddImage: 'Add Image',
+    layerAddText: 'Add Text',
+    layerDeleteSelected: 'Delete Layer',
+    layerFlatten: 'Flatten',
+    layerOpacity: 'Opacity',
+    layerMoveOrder: 'Reorder layer',
   },
 } as const
 
@@ -2236,6 +2267,7 @@ function App() {
   })
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
   const [selectedTextIds, setSelectedTextIds] = useState<string[]>([])
+  const [selectedUnifiedLayerRef, setSelectedUnifiedLayerRef] = useState<UnifiedLayerRef | null>(null)
   const [textInsertArmed, setTextInsertArmed] = useState(false)
   // ── New tool state ──
   const [penColor, setPenColor] = useState('#ffffff')
@@ -3938,6 +3970,7 @@ function App() {
               drawings: [],
               shapes: [],
               imageLayers: [],
+              layerOrder: [],
               adjustments: { ...DEFAULT_ADJUSTMENTS },
             })
           }
@@ -3955,6 +3988,7 @@ function App() {
             drawings: [],
             shapes: [],
             imageLayers: [],
+            layerOrder: [],
             adjustments: { ...DEFAULT_ADJUSTMENTS },
           })
         }
@@ -3987,6 +4021,7 @@ function App() {
       drawings: (asset.drawings ?? []).map((d) => ({ ...d, points: [...d.points] })),
       shapes: (asset.shapes ?? []).map((s) => ({ ...s })),
       imageLayers: (asset.imageLayers ?? []).map((il) => ({ ...il })),
+      layerOrder: (asset.layerOrder ?? []).map((r) => ({ ...r })),
       adjustments: { ...(asset.adjustments ?? DEFAULT_ADJUSTMENTS) },
     }
   }
@@ -4404,6 +4439,167 @@ function App() {
     updateAssetByIdWithHistory(active.id, label, mutator)
   }
 
+  // Compute effective unified layer order (backward-compatible)
+  const unifiedLayers = useMemo(() => {
+    if (!active) return []
+    const order = active.layerOrder ?? []
+    if (order.length > 0) {
+      // Ensure all layers are represented (in case layerOrder is stale)
+      const seen = new Set(order.map((r) => `${r.type}:${r.id}`))
+      const extra: UnifiedLayerRef[] = []
+      for (const il of (active.imageLayers ?? [])) {
+        if (!seen.has(`image:${il.id}`)) extra.push({ type: 'image', id: il.id })
+      }
+      for (const t of active.texts) {
+        if (!seen.has(`text:${t.id}`)) extra.push({ type: 'text', id: t.id })
+      }
+      // Filter out stale refs
+      const validIds = new Set([
+        ...(active.imageLayers ?? []).map((il) => `image:${il.id}`),
+        ...active.texts.map((t) => `text:${t.id}`),
+      ])
+      return [...order.filter((r) => validIds.has(`${r.type}:${r.id}`)), ...extra]
+    }
+    // Fallback: image layers first, then text layers (bottom-to-top)
+    const fallback: UnifiedLayerRef[] = []
+    for (const il of (active.imageLayers ?? [])) fallback.push({ type: 'image', id: il.id })
+    for (const t of active.texts) fallback.push({ type: 'text', id: t.id })
+    return fallback
+  }, [active])
+
+  // Ordered arrays for canvas rendering (respects layerOrder within each type)
+  const orderedImageLayers = useMemo(() => {
+    if (!active) return []
+    const imageRefs = unifiedLayers.filter((r) => r.type === 'image')
+    const imageMap = new Map((active.imageLayers ?? []).map((il) => [il.id, il]))
+    return imageRefs.map((r) => imageMap.get(r.id)).filter((il): il is ImageLayerItem => !!il)
+  }, [active, unifiedLayers])
+
+  const orderedTexts = useMemo(() => {
+    if (!active) return []
+    const textRefs = unifiedLayers.filter((r) => r.type === 'text')
+    const textMap = new Map(active.texts.map((t) => [t.id, t]))
+    return textRefs.map((r) => textMap.get(r.id)).filter((t): t is TextItem => !!t)
+  }, [active, unifiedLayers])
+
+  function moveUnifiedLayer(ref: UnifiedLayerRef, direction: 'up' | 'down') {
+    if (!active) return
+    updateActiveWithHistory(ui.layerMoveOrder, (a) => {
+      const order = [...(a.layerOrder ?? [])]
+      const idx = order.findIndex((r) => r.type === ref.type && r.id === ref.id)
+      if (idx < 0) return a
+      // In the layer panel, "up" visually means higher z-index = later in array
+      const target = direction === 'up' ? idx + 1 : idx - 1
+      if (target < 0 || target >= order.length) return a
+      const [item] = order.splice(idx, 1)
+      order.splice(target, 0, item)
+      return { ...a, layerOrder: order }
+    })
+  }
+
+  function deleteUnifiedLayer(ref: UnifiedLayerRef) {
+    if (!active) return
+    if (ref.type === 'text') {
+      updateActiveWithHistory('Delete text layer', (a) => ({
+        ...a,
+        texts: a.texts.filter((t) => t.id !== ref.id),
+        layerOrder: (a.layerOrder ?? []).filter((r) => !(r.type === 'text' && r.id === ref.id)),
+      }))
+      setSelectedTextIds((prev) => {
+        const next = prev.filter((id) => id !== ref.id)
+        if (selectedTextId === ref.id) setSelectedTextId(next[0] ?? null)
+        return next
+      })
+    } else {
+      updateActiveWithHistory(ui.historyRemoveImageLayer, (a) => ({
+        ...a,
+        imageLayers: (a.imageLayers ?? []).filter((il) => il.id !== ref.id),
+        layerOrder: (a.layerOrder ?? []).filter((r) => !(r.type === 'image' && r.id === ref.id)),
+      }))
+    }
+    if (selectedUnifiedLayerRef?.type === ref.type && selectedUnifiedLayerRef?.id === ref.id) {
+      setSelectedUnifiedLayerRef(null)
+    }
+  }
+
+  function toggleUnifiedLayerVisible(ref: UnifiedLayerRef) {
+    if (ref.type === 'text') {
+      toggleLayerVisible(ref.id)
+    } else {
+      updateActiveWithHistory('Toggle layer visibility', (a) => ({
+        ...a,
+        imageLayers: (a.imageLayers ?? []).map((il) => (il.id === ref.id ? { ...il, visible: !il.visible } : il)),
+      }))
+    }
+  }
+
+  function toggleUnifiedLayerLocked(ref: UnifiedLayerRef) {
+    if (ref.type === 'text') {
+      toggleLayerLocked(ref.id)
+    } else {
+      updateActiveWithHistory('Toggle layer lock', (a) => ({
+        ...a,
+        imageLayers: (a.imageLayers ?? []).map((il) => (il.id === ref.id ? { ...il, locked: !il.locked } : il)),
+      }))
+    }
+  }
+
+  function getUnifiedLayerOpacity(ref: UnifiedLayerRef): number {
+    if (!active) return 1
+    if (ref.type === 'text') {
+      const t = active.texts.find((t) => t.id === ref.id)
+      return t?.opacity ?? 1
+    }
+    const il = (active.imageLayers ?? []).find((il) => il.id === ref.id)
+    return il?.opacity ?? 1
+  }
+
+  function setUnifiedLayerOpacity(ref: UnifiedLayerRef, opacity: number) {
+    if (ref.type === 'text') {
+      updateActiveWithHistory('Update text', (a) => ({
+        ...a,
+        texts: a.texts.map((t) => (t.id === ref.id ? { ...t, opacity } : t)),
+      }))
+    } else {
+      updateActive((a) => ({
+        ...a,
+        imageLayers: (a.imageLayers ?? []).map((il) => (il.id === ref.id ? { ...il, opacity } : il)),
+      }))
+    }
+  }
+
+  function isUnifiedLayerVisible(ref: UnifiedLayerRef): boolean {
+    if (!active) return true
+    if (ref.type === 'text') return active.texts.find((t) => t.id === ref.id)?.visible ?? true
+    return (active.imageLayers ?? []).find((il) => il.id === ref.id)?.visible ?? true
+  }
+
+  function isUnifiedLayerLocked(ref: UnifiedLayerRef): boolean {
+    if (!active) return false
+    if (ref.type === 'text') return active.texts.find((t) => t.id === ref.id)?.locked ?? false
+    return (active.imageLayers ?? []).find((il) => il.id === ref.id)?.locked ?? false
+  }
+
+  function getUnifiedLayerName(ref: UnifiedLayerRef): string {
+    if (!active) return ''
+    if (ref.type === 'text') {
+      const t = active.texts.find((t) => t.id === ref.id)
+      return t?.text || ui.layerText
+    }
+    const il = (active.imageLayers ?? []).find((il) => il.id === ref.id)
+    return il ? `${il.width}×${il.height}` : ui.layerImage
+  }
+
+  function selectUnifiedLayer(ref: UnifiedLayerRef) {
+    setSelectedUnifiedLayerRef(ref)
+    if (ref.type === 'text') {
+      selectTextLayer(ref.id)
+      setTool('text')
+    } else {
+      clearTextSelection()
+    }
+  }
+
   function toggleLayerVisible(id: string) {
     updateActiveWithHistory('Toggle layer visibility', (a) => ({
       ...a,
@@ -4551,7 +4747,11 @@ function App() {
       ...DEFAULT_TEXT,
       groupId: DEFAULT_GROUP.id,
     }
-    updateActiveWithHistory('Add text layer', (a) => ({ ...a, texts: [...a.texts, item] }))
+    updateActiveWithHistory('Add text layer', (a) => ({
+      ...a,
+      texts: [...a.texts, item],
+      layerOrder: [...(a.layerOrder ?? []), { type: 'text' as const, id: item.id }],
+    }))
     selectTextLayer(item.id)
     return item
   }
@@ -4562,6 +4762,7 @@ function App() {
   }
 
   function selectTextLayer(id: string, additive = false) {
+    setSelectedUnifiedLayerRef({ type: 'text', id })
     if (!additive) {
       setSelectedTextId(id)
       setSelectedTextIds([id])
@@ -4594,7 +4795,7 @@ function App() {
       const clones = a.texts
         .filter((t) => selectedSet.has(t.id))
         .map((t) => ({ ...t, id: uid('text'), x: t.x + 24, y: t.y + 24, locked: false }))
-      return { ...a, texts: [...a.texts, ...clones] }
+      return { ...a, texts: [...a.texts, ...clones], layerOrder: [...(a.layerOrder ?? []), ...clones.map((c) => ({ type: 'text' as const, id: c.id }))] }
     })
   }
 
@@ -4964,7 +5165,9 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           locked: false,
         }
         updateActiveWithHistory(ui.historyAddImageLayer, (a) => ({
-          ...a, imageLayers: [...(a.imageLayers ?? []), layer],
+          ...a,
+          imageLayers: [...(a.imageLayers ?? []), layer],
+          layerOrder: [...(a.layerOrder ?? []), { type: 'image' as const, id: layer.id }],
         }))
       }
       img.src = dataUrl
@@ -5003,7 +5206,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         ctx.globalAlpha = 1
         const resultUrl = canvas.toDataURL('image/png')
         updateActiveWithHistory(ui.historyFlattenImageLayers, (a) => ({
-          ...a, baseDataUrl: resultUrl, imageLayers: [],
+          ...a, baseDataUrl: resultUrl, imageLayers: [], layerOrder: (a.layerOrder ?? []).filter((r) => r.type !== 'image'),
         }))
       })
     }
@@ -7967,7 +8170,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
 
               <Layer>
                 <Group x={fit.ox} y={fit.oy} scaleX={fit.scale} scaleY={fit.scale}>
-                  {active.texts.filter((t) => t.visible).map((t) => (
+                  {orderedTexts.filter((t) => t.visible).map((t) => (
                     <Group key={t.id} listening={tool === 'text' || tool === 'move'}>
                       {(() => {
                         const box = estimateTextBoxPx(t.text, t, active)
@@ -8239,8 +8442,8 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                     />
                   ))}
 
-                  {/* ── Image layers ── */}
-                  {(active.imageLayers ?? []).filter((l) => l.visible).map((l) => {
+                  {/* ── Image layers (ordered by unified layerOrder) ── */}
+                  {orderedImageLayers.filter((l) => l.visible).map((l) => {
                     const loadedImg = loadedImageLayers[l.id]
                     if (!loadedImg) return null
                     return (
@@ -9033,7 +9236,9 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                           <div className="propLayerActions" style={{ opacity: 1 }}>
                             <button className="propLayerBtn" onClick={() => {
                               updateActiveWithHistory(ui.historyRemoveImageLayer, (a) => ({
-                                ...a, imageLayers: (a.imageLayers ?? []).filter((il) => il.id !== l.id),
+                                ...a,
+                                imageLayers: (a.imageLayers ?? []).filter((il) => il.id !== l.id),
+                                layerOrder: (a.layerOrder ?? []).filter((r) => !(r.type === 'image' && r.id === l.id)),
                               }))
                             }} title={ui.imageLayerRemove}>✕</button>
                           </div>
@@ -9219,7 +9424,11 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                           <button
                             className="propLayerBtn propLayerDanger"
                             onClick={() => {
-                              updateActiveWithHistory('Delete text layer', (a) => ({ ...a, texts: a.texts.filter((tt) => tt.id !== t.id) }))
+                              updateActiveWithHistory('Delete text layer', (a) => ({
+                                ...a,
+                                texts: a.texts.filter((tt) => tt.id !== t.id),
+                                layerOrder: (a.layerOrder ?? []).filter((r) => !(r.type === 'text' && r.id === t.id)),
+                              }))
                               setSelectedTextIds((prev) => {
                                 const next = prev.filter((id) => id !== t.id)
                                 if (selectedTextId === t.id) setSelectedTextId(next[0] ?? null)
@@ -9242,6 +9451,127 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
             </>) : null}
 
           </div>
+          ) : null}
+        </div>
+
+        {/* ── Layers accordion (Photoshop-style unified) ── */}
+        <div className={`accordionSection ${accordionState.layers ? 'expanded' : ''}`}>
+          <button className="accordionHeader" onClick={() => toggleAccordion('layers')}>
+            {ui.layerPanelTitle}
+            <span className="accordionChevron">{accordionState.layers ? '▾' : '▸'}</span>
+          </button>
+          {accordionState.layers && active ? (
+            <div className="accordionBody layerPanelBody">
+              {/* Layer list - reversed so top layer is visually on top */}
+              <div className="psLayerList">
+                {[...unifiedLayers].reverse().map((ref) => {
+                  const isSelected = selectedUnifiedLayerRef?.type === ref.type && selectedUnifiedLayerRef?.id === ref.id
+                  const visible = isUnifiedLayerVisible(ref)
+                  const locked = isUnifiedLayerLocked(ref)
+                  const name = getUnifiedLayerName(ref)
+                  const opacity = getUnifiedLayerOpacity(ref)
+                  const isText = ref.type === 'text'
+                  const imgLayer = !isText ? (active.imageLayers ?? []).find((il) => il.id === ref.id) : null
+                  return (
+                    <div
+                      key={`${ref.type}-${ref.id}`}
+                      className={`psLayerItem ${isSelected ? 'selected' : ''}`}
+                      onClick={() => selectUnifiedLayer(ref)}
+                    >
+                      <button
+                        className={`psLayerEye ${visible ? '' : 'off'}`}
+                        onClick={(e) => { e.stopPropagation(); toggleUnifiedLayerVisible(ref) }}
+                        title={ui.showLayer}
+                      >
+                        {visible ? '👁' : ''}
+                      </button>
+                      <div className="psLayerThumb">
+                        {isText ? (
+                          <span className="psLayerThumbText">T</span>
+                        ) : imgLayer ? (
+                          <img src={imgLayer.dataUrl} alt="" className="psLayerThumbImg" />
+                        ) : (
+                          <span className="psLayerThumbText">🖼</span>
+                        )}
+                      </div>
+                      <div className="psLayerInfo">
+                        <span className="psLayerName">{name}</span>
+                        <span className="psLayerMeta">
+                          {isText ? ui.layerText : ui.layerImage}
+                          {opacity < 1 ? ` · ${Math.round(opacity * 100)}%` : ''}
+                        </span>
+                      </div>
+                      {locked ? <span className="psLayerLockBadge">🔒</span> : null}
+                    </div>
+                  )
+                })}
+                {/* Background layer (always at bottom) */}
+                <div className="psLayerItem psLayerBg">
+                  <button className="psLayerEye" title={ui.showLayer}>👁</button>
+                  <div className="psLayerThumb">
+                    <img src={active.baseDataUrl} alt="" className="psLayerThumbImg" />
+                  </div>
+                  <div className="psLayerInfo">
+                    <span className="psLayerName">{ui.layerBackground}</span>
+                    <span className="psLayerMeta">{active.width}×{active.height}</span>
+                  </div>
+                  <span className="psLayerLockBadge">🔒</span>
+                </div>
+              </div>
+
+              {/* Layer opacity slider for selected */}
+              {selectedUnifiedLayerRef ? (
+                <div className="psLayerOpacity">
+                  <span className="propLabel">{ui.layerOpacity}</span>
+                  <input
+                    className="smoothRange"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(getUnifiedLayerOpacity(selectedUnifiedLayerRef) * 100)}
+                    onChange={(e) => setUnifiedLayerOpacity(selectedUnifiedLayerRef, Number(e.target.value) / 100)}
+                  />
+                  <span className="propSliderVal">{Math.round(getUnifiedLayerOpacity(selectedUnifiedLayerRef) * 100)}%</span>
+                </div>
+              ) : null}
+
+              {/* Layer toolbar */}
+              <div className="psLayerToolbar">
+                <button className="psLayerToolBtn" onClick={() => imageLayerInputRef.current?.click()} title={ui.layerAddImage}>
+                  <FontAwesomeIcon icon={faImage} />
+                </button>
+                <button className="psLayerToolBtn" onClick={() => { addTextFromMenu(); setTool('text') }} title={ui.layerAddText}>
+                  <FontAwesomeIcon icon={faFont} />
+                </button>
+                <button
+                  className="psLayerToolBtn"
+                  disabled={!selectedUnifiedLayerRef}
+                  onClick={() => selectedUnifiedLayerRef && moveUnifiedLayer(selectedUnifiedLayerRef, 'up')}
+                  title={ui.moveLayerUp}
+                >↑</button>
+                <button
+                  className="psLayerToolBtn"
+                  disabled={!selectedUnifiedLayerRef}
+                  onClick={() => selectedUnifiedLayerRef && moveUnifiedLayer(selectedUnifiedLayerRef, 'down')}
+                  title={ui.moveLayerDown}
+                >↓</button>
+                <button
+                  className="psLayerToolBtn"
+                  disabled={!selectedUnifiedLayerRef}
+                  onClick={() => selectedUnifiedLayerRef && toggleUnifiedLayerLocked(selectedUnifiedLayerRef)}
+                  title={ui.lockLayer}
+                >
+                  {selectedUnifiedLayerRef && isUnifiedLayerLocked(selectedUnifiedLayerRef) ? '🔒' : '🔓'}
+                </button>
+                <button
+                  className="psLayerToolBtn psLayerToolDanger"
+                  disabled={!selectedUnifiedLayerRef}
+                  onClick={() => selectedUnifiedLayerRef && deleteUnifiedLayer(selectedUnifiedLayerRef)}
+                  title={ui.layerDeleteSelected}
+                >✕</button>
+              </div>
+            </div>
           ) : null}
         </div>
 

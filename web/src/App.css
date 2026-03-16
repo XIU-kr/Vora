@@ -1272,6 +1272,192 @@
   color: #ff6b6b;
 }
 
+/* ─── Photoshop-style Unified Layer Panel ─── */
+.layerPanelBody {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  max-height: 55vh !important;
+}
+
+.psLayerList {
+  flex: 1;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 60px;
+  max-height: 320px;
+}
+
+.psLayerList::-webkit-scrollbar { width: 3px; }
+.psLayerList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
+
+.psLayerItem {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  min-height: 40px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: background 0.08s;
+  user-select: none;
+}
+
+.psLayerItem:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.psLayerItem.selected {
+  background: rgba(60, 120, 220, 0.18);
+  box-shadow: inset 3px 0 0 #4a90d9;
+}
+
+.psLayerItem.psLayerBg {
+  background: rgba(0, 0, 0, 0.12);
+  opacity: 0.7;
+  cursor: default;
+}
+
+.psLayerItem.psLayerBg:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.psLayerEye {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.08s;
+  flex-shrink: 0;
+}
+
+.psLayerEye:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.psLayerEye.off {
+  opacity: 0.2;
+}
+
+.psLayerThumb {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  margin: 2px 0;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.psLayerThumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.psLayerThumbText {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: 'Georgia', serif;
+  line-height: 1;
+}
+
+.psLayerInfo {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.psLayerName {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.psLayerMeta {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.2px;
+}
+
+.psLayerLockBadge {
+  font-size: 10px;
+  padding-right: 6px;
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+/* Opacity control */
+.psLayerOpacity {
+  display: grid;
+  grid-template-columns: 56px 1fr 40px;
+  gap: 0 4px;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Layer toolbar */
+.psLayerToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.psLayerToolBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.08s, color 0.08s;
+}
+
+.psLayerToolBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.psLayerToolBtn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.psLayerToolDanger:hover:not(:disabled) {
+  background: rgba(255, 70, 70, 0.15);
+  color: #ff6b6b;
+}
+
 /* ─── Status bar ─── */
 .statusBar {
   grid-area: status;
