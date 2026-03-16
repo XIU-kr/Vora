@@ -28,7 +28,7 @@
   --sidebar-w: 280px;
   --header-h: 42px;
   --menu-h: 28px;
-  --options-h: 40px;
+  /* options bar removed */
   --filmstrip-h: 62px;
   --status-h: 28px;
 }
@@ -46,12 +46,11 @@
   --motion-scale: 1;
   height: 100dvh;
   display: grid;
-  grid-template-rows: var(--header-h) var(--menu-h) var(--options-h) var(--filmstrip-h) 1fr var(--status-h);
+  grid-template-rows: var(--header-h) var(--menu-h) var(--filmstrip-h) 1fr var(--status-h);
   grid-template-columns: var(--toolbar-w) 1fr var(--sidebar-w);
   grid-template-areas:
     "header    header    header"
     "menubar   menubar   menubar"
-    "options   options   options"
     "filmstrip filmstrip filmstrip"
     "toolbar   canvas    sidebar"
     "status    status    status";
@@ -67,29 +66,26 @@
   grid-template-areas:
     "header    header"
     "menubar   menubar"
-    "options   options"
     "filmstrip filmstrip"
     "toolbar   canvas"
     "status    status";
 }
 
 .app.noFilmstrip {
-  grid-template-rows: var(--header-h) var(--menu-h) var(--options-h) 1fr var(--status-h);
+  grid-template-rows: var(--header-h) var(--menu-h) 1fr var(--status-h);
   grid-template-areas:
     "header  header  header"
     "menubar menubar menubar"
-    "options options options"
     "toolbar canvas  sidebar"
     "status  status  status";
 }
 
 .app.noSidebar.noFilmstrip {
-  grid-template-rows: var(--header-h) var(--menu-h) var(--options-h) 1fr var(--status-h);
+  grid-template-rows: var(--header-h) var(--menu-h) 1fr var(--status-h);
   grid-template-columns: var(--toolbar-w) 1fr;
   grid-template-areas:
     "header  header"
     "menubar menubar"
-    "options options"
     "toolbar canvas"
     "status  status";
 }
@@ -255,319 +251,7 @@
 .unsavedBadge.tierWarn { border-color: rgba(255, 156, 80, 0.45); background: rgba(255, 156, 80, 0.14); color: #ffe0c0; }
 .unsavedBadge.tierHigh { border-color: rgba(255, 124, 124, 0.5); background: rgba(255, 124, 124, 0.16); color: #ffd2d2; }
 
-/* ─── Options bar (Photoshop-style) ─── */
-.optionsBar {
-  grid-area: options;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 0;
-  background: linear-gradient(180deg, rgba(60, 60, 64, 0.95) 0%, rgba(50, 50, 54, 0.98) 100%);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-  overflow-x: auto;
-  overflow-y: hidden;
-  z-index: 18;
-  font-size: 11px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-
-.optionsBar::-webkit-scrollbar { height: 2px; }
-.optionsBar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
-
-/* ── Tool indicator (left side) ── */
-.obToolIndicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 10px;
-  height: 100%;
-  flex-shrink: 0;
-  border-right: 1px solid rgba(0, 0, 0, 0.25);
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.obToolIndicator:hover { background: rgba(0, 0, 0, 0.14); }
-.obToolEmpty { opacity: 0.5; }
-
-.obToolIcon {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-  width: 14px;
-  text-align: center;
-}
-
-.obToolName {
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-  white-space: nowrap;
-  letter-spacing: 0.2px;
-  text-transform: capitalize;
-}
-
-/* ── Divider ── */
-.obDivider {
-  width: 1px;
-  height: 18px;
-  background: rgba(255, 255, 255, 0.08);
-  margin: 0 6px;
-  flex-shrink: 0;
-}
-
-/* ── Field group ── */
-.obFieldGroup {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  padding: 0 4px;
-}
-
-.obFieldLabel {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.45);
-  white-space: nowrap;
-  flex-shrink: 0;
-  cursor: default;
-  user-select: none;
-  letter-spacing: 0.2px;
-}
-
-/* ── Compact range slider ── */
-.obRange {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 80px;
-  height: 14px;
-  background: transparent;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.obRange::-webkit-slider-runnable-track {
-  height: 3px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  border: none;
-}
-
-.obRange::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(200, 200, 210, 0.95);
-  border: 1.5px solid rgba(100, 100, 110, 0.8);
-  margin-top: -3.5px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  transition: background 80ms ease;
-}
-
-.obRange::-webkit-slider-thumb:hover {
-  background: #fff;
-}
-
-.obRange::-moz-range-track {
-  height: 3px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  border: none;
-}
-
-.obRange::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: rgba(200, 200, 210, 0.95);
-  border: 1.5px solid rgba(100, 100, 110, 0.8);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.obRangeShort { width: 60px; }
-
-/* ── Number input ── */
-.obNumInput {
-  width: 42px;
-  height: 20px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 2px;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 11px;
-  font-family: inherit;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  padding: 0 3px;
-  outline: none;
-  transition: border-color 80ms ease;
-}
-
-.obNumInput:focus {
-  border-color: rgba(108, 140, 255, 0.5);
-  background: rgba(0, 0, 0, 0.45);
-}
-
-.obNumInput::-webkit-inner-spin-button,
-.obNumInput::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.obUnit {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
-  user-select: none;
-  flex-shrink: 0;
-}
-
-.obValDisplay {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.55);
-  font-variant-numeric: tabular-nums;
-  min-width: 28px;
-  text-align: right;
-  user-select: none;
-  flex-shrink: 0;
-}
-
-/* ── Segment control (Photoshop toggle group) ── */
-.obSegment {
-  display: flex;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 3px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.obSegBtn {
-  padding: 2px 8px;
-  font-size: 11px;
-  font-family: inherit;
-  color: rgba(255, 255, 255, 0.55);
-  background: transparent;
-  border: none;
-  border-right: 1px solid rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 80ms ease, color 80ms ease;
-  height: 22px;
-  line-height: 18px;
-}
-
-.obSegBtn:last-child { border-right: none; }
-.obSegBtn:hover { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.8); }
-
-.obSegBtn.active {
-  background: rgba(108, 140, 255, 0.2);
-  color: #c0cdff;
-  box-shadow: inset 0 -1px 0 rgba(108, 140, 255, 0.4);
-}
-
-/* ── Action button ── */
-.obActionBtn {
-  padding: 2px 10px;
-  font-size: 11px;
-  font-family: inherit;
-  color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 3px;
-  cursor: pointer;
-  white-space: nowrap;
-  height: 22px;
-  line-height: 16px;
-  transition: background 80ms ease, color 80ms ease, border-color 80ms ease;
-}
-
-.obActionBtn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.obActionBtn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.obActionPrimary {
-  background: rgba(108, 140, 255, 0.15);
-  border-color: rgba(108, 140, 255, 0.3);
-  color: #b8c8ff;
-}
-
-.obActionPrimary:hover:not(:disabled) {
-  background: rgba(108, 140, 255, 0.25);
-  border-color: rgba(108, 140, 255, 0.45);
-  color: #d0ddff;
-}
-
-/* ── Color swatch (inline) ── */
-.obColorSwatch {
-  position: relative;
-  width: 20px;
-  height: 20px;
-  border-radius: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  overflow: hidden;
-  cursor: pointer;
-  flex-shrink: 0;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3);
-}
-
-.obColorSwatch:hover { border-color: rgba(255, 255, 255, 0.25); }
-
-.obSwatchLarge { width: 26px; height: 26px; }
-
-.obColorSwatch input {
-  position: absolute;
-  inset: -4px;
-  width: calc(100% + 8px);
-  height: calc(100% + 8px);
-  border: 0;
-  padding: 0;
-  cursor: pointer;
-  opacity: 0;
-}
-
-.obSwatchFill {
-  display: block;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-/* ── Canvas info (right-aligned) ── */
-.obCanvasInfo {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  flex-shrink: 0;
-}
-
-.obInfoText {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.3);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.3px;
-  user-select: none;
-}
-
-/* ── Legacy compat ── */
-.optionsModeTag {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--accent-glow);
-  color: #cdd8ff;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
+/* Options bar removed */
 
 /* ─── Filmstrip ─── */
 .filmstrip {
@@ -3577,10 +3261,7 @@
 
 /* ─── Density compact mode ─── */
 .densityCompact .headerBar { padding: 0 10px; }
-.densityCompact .optionsBar { padding: 0; }
-.densityCompact .obFieldGroup { gap: 3px; padding: 0 3px; }
-.densityCompact .obDivider { margin: 0 4px; }
-.densityCompact .obToolIndicator { padding: 0 7px; }
+/* options bar density overrides removed */
 .densityCompact .btn { min-height: var(--control-h-compact); padding: 4px 8px; }
 .densityCompact .input,
 .densityCompact .select { min-height: var(--control-h-compact); height: var(--control-h-compact); }
@@ -3588,20 +3269,18 @@
 /* ─── Responsive ─── */
 @media (max-width: 980px) {
   .app {
-    grid-template-rows: var(--header-h) var(--options-h) var(--filmstrip-h) 1fr var(--status-h);
+    grid-template-rows: var(--header-h) var(--filmstrip-h) 1fr var(--status-h);
     grid-template-columns: var(--toolbar-w) 1fr;
     grid-template-areas:
       "header    header"
-      "options   options"
       "filmstrip filmstrip"
       "toolbar   canvas"
       "status    status";
   }
   .app.noFilmstrip {
-    grid-template-rows: var(--header-h) var(--options-h) 1fr var(--status-h);
+    grid-template-rows: var(--header-h) 1fr var(--status-h);
     grid-template-areas:
       "header  header"
-      "options options"
       "toolbar canvas"
       "status  status";
   }
