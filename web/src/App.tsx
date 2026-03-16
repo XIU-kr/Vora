@@ -8288,7 +8288,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         {active ? (
           <div className="obCanvasInfo">
             <span className="obInfoText">{active.width}×{active.height}</span>
-            <span className="obInfoText">{Math.round(zoom * 100)}%</span>
+            <span className="obInfoText">{Math.round((stageRef.current?.scaleX() ?? 1) * 100)}%</span>
           </div>
         ) : null}
       </div>
