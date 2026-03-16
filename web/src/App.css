@@ -27,6 +27,7 @@
   --toolbar-w: 44px;
   --sidebar-w: 280px;
   --header-h: 42px;
+  --menu-h: 28px;
   --options-h: 40px;
   --filmstrip-h: 62px;
   --status-h: 28px;
@@ -45,10 +46,11 @@
   --motion-scale: 1;
   height: 100dvh;
   display: grid;
-  grid-template-rows: var(--header-h) var(--options-h) var(--filmstrip-h) 1fr var(--status-h);
+  grid-template-rows: var(--header-h) var(--menu-h) var(--options-h) var(--filmstrip-h) 1fr var(--status-h);
   grid-template-columns: var(--toolbar-w) 1fr var(--sidebar-w);
   grid-template-areas:
     "header    header    header"
+    "menubar   menubar   menubar"
     "options   options   options"
     "filmstrip filmstrip filmstrip"
     "toolbar   canvas    sidebar"
@@ -64,6 +66,7 @@
   grid-template-columns: var(--toolbar-w) 1fr;
   grid-template-areas:
     "header    header"
+    "menubar   menubar"
     "options   options"
     "filmstrip filmstrip"
     "toolbar   canvas"
@@ -71,19 +74,21 @@
 }
 
 .app.noFilmstrip {
-  grid-template-rows: var(--header-h) var(--options-h) 1fr var(--status-h);
+  grid-template-rows: var(--header-h) var(--menu-h) var(--options-h) 1fr var(--status-h);
   grid-template-areas:
     "header  header  header"
+    "menubar menubar menubar"
     "options options options"
     "toolbar canvas  sidebar"
     "status  status  status";
 }
 
 .app.noSidebar.noFilmstrip {
-  grid-template-rows: var(--header-h) var(--options-h) 1fr var(--status-h);
+  grid-template-rows: var(--header-h) var(--menu-h) var(--options-h) 1fr var(--status-h);
   grid-template-columns: var(--toolbar-w) 1fr;
   grid-template-areas:
     "header  header"
+    "menubar menubar"
     "options options"
     "toolbar canvas"
     "status  status";
@@ -3437,3 +3442,569 @@
 }
 
 .textSplitSimple { grid-template-columns: 1fr; }
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Menu Bar ─── */
+/* ═══════════════════════════════════════════════════════ */
+.menuBar {
+  grid-area: menubar;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  background: var(--bg-toolbar);
+  border-bottom: 1px solid var(--stroke);
+  z-index: 25;
+  gap: 0;
+}
+
+.menuBarItem {
+  position: relative;
+}
+
+.menuBarBtn {
+  height: var(--menu-h);
+  padding: 0 10px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 60ms, color 60ms;
+}
+
+.menuBarBtn:hover,
+.menuBarBtn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.menuDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  background: var(--bg-panel);
+  border: 1px solid var(--stroke);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  box-shadow: var(--shadow);
+  z-index: 100;
+  padding: 4px 0;
+}
+
+.menuDropdownItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 5px 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 60ms;
+}
+
+.menuDropdownItem:hover:not(:disabled) {
+  background: rgba(108, 140, 255, 0.15);
+}
+
+.menuDropdownItem:disabled {
+  color: var(--faint);
+  cursor: default;
+}
+
+.menuItemShortcut {
+  color: var(--faint);
+  font-size: 11px;
+  margin-left: 20px;
+}
+
+.menuDivider {
+  height: 1px;
+  background: var(--stroke);
+  margin: 3px 8px;
+}
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Tool Group Flyout ─── */
+/* ═══════════════════════════════════════════════════════ */
+.toolBtnWrap {
+  position: relative;
+}
+
+.toolGroupTriangle {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 7px;
+  color: rgba(255, 255, 255, 0.35);
+  line-height: 1;
+  pointer-events: none;
+}
+
+.toolFlyout {
+  position: fixed;
+  background: var(--bg-panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  z-index: 200;
+  padding: 4px 0;
+  min-width: 180px;
+}
+
+.flyoutItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 60ms;
+}
+
+.flyoutItem:hover {
+  background: rgba(108, 140, 255, 0.15);
+}
+
+.flyoutItem.active {
+  background: rgba(108, 140, 255, 0.1);
+  color: var(--accent);
+}
+
+.flyoutIcon {
+  width: 14px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.flyoutLabel {
+  flex: 1;
+}
+
+.flyoutKey {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+/* ─── Toolbar color swatches ─── */
+.toolColorSwatches {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  margin: 4px auto 0;
+}
+
+.toolColorFg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.toolColorBg {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.toolColorSwap {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  font-size: 9px;
+  line-height: 1;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  padding: 0;
+}
+
+.toolColorSwap:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Rulers ─── */
+/* ═══════════════════════════════════════════════════════ */
+.canvasWrap.withRulers {
+  padding-top: 20px;
+  padding-left: 20px;
+}
+
+.rulerH {
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 0;
+  height: 20px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.rulerV {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  bottom: 0;
+  width: 20px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.rulerCorner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background: rgba(30, 30, 56, 0.95);
+  z-index: 11;
+}
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Layer Blend Mode ─── */
+/* ═══════════════════════════════════════════════════════ */
+.psBlendModeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.psBlendSelect {
+  flex: 1;
+  min-height: 24px;
+  font-size: 11px;
+}
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Layer Effects ─── */
+/* ═══════════════════════════════════════════════════════ */
+.psEffectsSection {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 4px 0;
+}
+
+.psEffectsHeader {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--faint);
+  padding: 2px 8px 4px;
+}
+
+.psEffectRow {
+  padding: 3px 8px;
+}
+
+.psEffectRow label {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.psEffectRow input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  accent-color: var(--accent);
+}
+
+.psEffectControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  padding-left: 17px;
+}
+
+.psEffectControls input[type="color"] {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--stroke);
+  border-radius: 3px;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.psEffectControls input[type="range"] {
+  flex: 1;
+  height: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Layer Groups ─── */
+/* ═══════════════════════════════════════════════════════ */
+.psLayerGroup {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.psLayerCollapseBtn {
+  background: none;
+  border: none;
+  color: var(--faint);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.psLayerCollapseBtn:hover {
+  color: var(--text);
+}
+
+.psLayerAdj {
+  background: rgba(180, 130, 255, 0.04);
+}
+
+.psAdjControls {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 4px 0;
+}
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Command Palette ─── */
+/* ═══════════════════════════════════════════════════════ */
+.commandPaletteOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+}
+
+.commandPalette {
+  width: 500px;
+  max-width: 90vw;
+  background: var(--bg-panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.commandPaletteSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.commandSearchIcon {
+  color: var(--faint);
+  font-size: 14px;
+}
+
+.commandSearchInput {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.commandSearchInput::placeholder {
+  color: var(--faint);
+}
+
+.commandPaletteList {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.commandPaletteList::-webkit-scrollbar { width: 3px; }
+.commandPaletteList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 999px; }
+
+.commandPaletteSection {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--faint);
+  padding: 6px 14px 2px;
+}
+
+.commandPaletteItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 7px 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 40ms;
+}
+
+.commandPaletteItem:hover,
+.commandPaletteItem.active {
+  background: rgba(108, 140, 255, 0.15);
+}
+
+.commandItemShortcut {
+  color: var(--faint);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.commandPaletteEmpty {
+  padding: 20px 14px;
+  color: var(--faint);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════════════════ */
+/* ─── Color Panel ─── */
+/* ═══════════════════════════════════════════════════════ */
+.colorPanelOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+}
+
+.colorPanel {
+  position: absolute;
+  bottom: 60px;
+  left: 50px;
+  width: 260px;
+  background: var(--bg-panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.colorPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  border-bottom: 1px solid var(--stroke);
+}
+
+.colorPanelClose {
+  background: none;
+  border: none;
+  color: var(--faint);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.colorPanelClose:hover { color: var(--text); }
+
+.colorPanelBody {
+  padding: 10px;
+}
+
+.colorPanelPicker {
+  width: 100%;
+  height: 140px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+
+.colorPanelInputs {
+  margin-top: 8px;
+}
+
+.colorPanelLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.colorPanelHex {
+  flex: 1;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+.colorPanelRecent {
+  margin-top: 10px;
+}
+
+.colorPanelRecentLabel {
+  font-size: 10px;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.colorPanelSwatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.colorSwatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: transform 80ms;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}

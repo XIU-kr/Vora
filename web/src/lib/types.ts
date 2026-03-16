@@ -1,5 +1,65 @@
 export type Tool = 'restore' | 'eraser' | 'select' | 'text' | 'crop' | 'move' | 'pen' | 'shape' | 'blur' | 'dodge' | 'eyedropper' | 'hand' | 'adjust'
 
+export type BlendMode =
+  | 'normal'
+  | 'multiply'
+  | 'screen'
+  | 'overlay'
+  | 'darken'
+  | 'lighten'
+  | 'color-dodge'
+  | 'color-burn'
+  | 'hard-light'
+  | 'soft-light'
+  | 'difference'
+  | 'exclusion'
+
+export type LayerEffects = {
+  dropShadow?: {
+    enabled: boolean
+    color: string
+    blur: number
+    offsetX: number
+    offsetY: number
+  }
+  outerStroke?: {
+    enabled: boolean
+    color: string
+    width: number
+  }
+  innerGlow?: {
+    enabled: boolean
+    color: string
+    blur: number
+  }
+}
+
+export type LayerFolder = {
+  id: string
+  name: string
+  visible: boolean
+  collapsed: boolean
+  opacity: number
+  blendMode: BlendMode
+}
+
+export type AdjustmentLayerItem = {
+  id: string
+  name: string
+  type: 'brightness-contrast' | 'hue-saturation' | 'color-balance'
+  visible: boolean
+  locked: boolean
+  opacity: number
+  brightness?: number
+  contrast?: number
+  hue?: number
+  saturation?: number
+  lightness?: number
+  redCyan?: number
+  greenMagenta?: number
+  blueYellow?: number
+}
+
 export type DrawingStroke = {
   id: string
   points: number[]
@@ -40,6 +100,8 @@ export type ImageLayerItem = {
   rotation: number
   visible: boolean
   locked: boolean
+  blendMode?: BlendMode
+  effects?: LayerEffects
 }
 
 export type ImageAdjustments = {
@@ -80,6 +142,8 @@ export type TextItem = {
   locked: boolean
   opacity: number
   groupId: string
+  blendMode?: BlendMode
+  effects?: LayerEffects
 }
 
 export type LayerGroup = {
@@ -89,8 +153,9 @@ export type LayerGroup = {
 }
 
 export type UnifiedLayerRef = {
-  type: 'text' | 'image'
+  type: 'text' | 'image' | 'group' | 'adjustment'
   id: string
+  parentGroupId?: string
 }
 
 export type HistoryEntry = {
@@ -113,4 +178,6 @@ export type PageAsset = {
   imageLayers: ImageLayerItem[]
   layerOrder: UnifiedLayerRef[]
   adjustments: ImageAdjustments
+  layerFolders?: LayerFolder[]
+  adjustmentLayers?: AdjustmentLayerItem[]
 }

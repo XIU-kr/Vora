@@ -20,12 +20,16 @@ import {
   faImage,
   faSliders,
   faWandMagicSparkles,
+  faFolder,
+  faFolderPlus,
+  faMagnifyingGlass,
+  faCircleHalfStroke,
 } from '@fortawesome/free-solid-svg-icons'
 import { jsPDF } from 'jspdf'
 import PptxGenJS from 'pptxgenjs'
 
 import './App.css'
-import type { BlurMode, DodgeMode, DrawingStroke, ImageAdjustments, ImageLayerItem, LayerGroup, MaskStroke, PageAsset, ShapeItem, ShapeType, TextItem, Tool, UnifiedLayerRef } from './lib/types'
+import type { AdjustmentLayerItem, BlendMode, BlurMode, DodgeMode, DrawingStroke, ImageAdjustments, ImageLayerItem, LayerEffects, LayerFolder, LayerGroup, MaskStroke, PageAsset, ShapeItem, ShapeType, TextItem, Tool, UnifiedLayerRef } from './lib/types'
 import { importImageFile, importPdfFile } from './lib/importers'
 import { inpaintViaApi, segmentPointViaApi } from './lib/api'
 import { dataUrlToBlob, downloadBlob } from './lib/download'
@@ -140,6 +144,28 @@ const ERR_PNG_CONVERT_FAILED = 'ERR_PNG_CONVERT_FAILED'
 const ERR_IMAGE_LOAD_FAILED = 'ERR_IMAGE_LOAD_FAILED'
 const ERR_DATA_URL_CONVERT_FAILED = 'ERR_DATA_URL_CONVERT_FAILED'
 const ERR_SEGMENT_MASK_EMPTY = 'ERR_SEGMENT_MASK_EMPTY'
+
+const BLEND_MODE_OPTIONS: BlendMode[] = [
+  'normal', 'multiply', 'screen', 'overlay', 'darken', 'lighten',
+  'color-dodge', 'color-burn', 'hard-light', 'soft-light', 'difference', 'exclusion',
+]
+
+function blendModeToComposite(mode?: BlendMode): GlobalCompositeOperation {
+  if (!mode || mode === 'normal') return 'source-over'
+  return mode as GlobalCompositeOperation
+}
+
+/* ── Tool group definitions for flyout ── */
+type ToolGroupDef = { tools: Tool[]; label: string }
+const TOOL_GROUPS: ToolGroupDef[] = [
+  { tools: ['restore', 'eraser'], label: 'AI Brush' },
+  { tools: ['select'], label: 'Select' },
+  { tools: ['move', 'hand'], label: 'Navigate' },
+  { tools: ['text', 'pen', 'shape'], label: 'Create' },
+  { tools: ['crop'], label: 'Crop' },
+  { tools: ['blur', 'dodge'], label: 'Effects' },
+  { tools: ['adjust', 'eyedropper'], label: 'Inspect' },
+]
 
 function uid(prefix: string) {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -1622,6 +1648,60 @@ const UI = {
     layerFlatten: '레이어 병합',
     layerOpacity: '불투명도',
     layerMoveOrder: '레이어 순서 변경',
+    // ── Menu bar ──
+    menuFile: '파일',
+    menuEdit: '편집',
+    menuImage: '이미지',
+    menuLayer: '레이어',
+    menuSelect: '선택',
+    menuView: '보기',
+    menuRotate90: '90° 회전',
+    menuFlattenLayers: '레이어 병합',
+    menuDeleteLayer: '레이어 삭제',
+    menuSelectAll: '전체 선택',
+    menuInvertSelection: '선택 반전',
+    menuExpandSelection: '선택 확장',
+    menuContractSelection: '선택 축소',
+    menuFeatherSelection: '선택 페더',
+    menuClearSelection: '선택 해제',
+    menuShowGrid: '그리드 보기',
+    menuShowRulers: '눈금자 보기',
+    menuShowMinimap: '미니맵 보기',
+    menuZoomIn: '확대',
+    menuZoomOut: '축소',
+    menuZoomReset: '배율 초기화',
+    // ── Blend mode ──
+    blendMode: '블렌드 모드',
+    // ── Color panel ──
+    foregroundColor: '전경색',
+    backgroundColor: '배경색',
+    swapColors: '색상 교체 (X)',
+    recentColors: '최근 색상',
+    // ── Rulers ──
+    rulers: '눈금자',
+    // ── Layer effects ──
+    layerEffects: '레이어 효과',
+    effectDropShadow: '드롭 쉐도우',
+    effectOuterStroke: '외곽선',
+    effectInnerGlow: '내부 광선',
+    effectColor: '색상',
+    effectBlur: '블러',
+    effectOffset: '오프셋',
+    effectWidth: '너비',
+    // ── Layer groups ──
+    addGroup2: '그룹 추가',
+    groupFolder: '폴더',
+    // ── Command palette ──
+    commandPalette: '명령 팔레트',
+    commandSearch: '명령 검색...',
+    commandRecent: '최근 사용',
+    commandNoMatch: '일치하는 명령이 없습니다',
+    // ── Adjustment layers ──
+    addAdjustmentLayer: '조정 레이어 추가',
+    adjustmentBrightnessContrast: '밝기/대비',
+    adjustmentHueSaturation: '색조/채도',
+    adjustmentColorBalance: '색상 균형',
+    adjustmentLayer: '조정',
   },
   en: {
     tag: 'Image/PDF editor',
@@ -2169,6 +2249,60 @@ const UI = {
     layerFlatten: 'Flatten',
     layerOpacity: 'Opacity',
     layerMoveOrder: 'Reorder layer',
+    // ── Menu bar ──
+    menuFile: 'File',
+    menuEdit: 'Edit',
+    menuImage: 'Image',
+    menuLayer: 'Layer',
+    menuSelect: 'Select',
+    menuView: 'View',
+    menuRotate90: 'Rotate 90°',
+    menuFlattenLayers: 'Flatten Layers',
+    menuDeleteLayer: 'Delete Layer',
+    menuSelectAll: 'Select All',
+    menuInvertSelection: 'Invert Selection',
+    menuExpandSelection: 'Expand Selection',
+    menuContractSelection: 'Contract Selection',
+    menuFeatherSelection: 'Feather Selection',
+    menuClearSelection: 'Clear Selection',
+    menuShowGrid: 'Show Grid',
+    menuShowRulers: 'Show Rulers',
+    menuShowMinimap: 'Show Minimap',
+    menuZoomIn: 'Zoom In',
+    menuZoomOut: 'Zoom Out',
+    menuZoomReset: 'Reset Zoom',
+    // ── Blend mode ──
+    blendMode: 'Blend Mode',
+    // ── Color panel ──
+    foregroundColor: 'Foreground',
+    backgroundColor: 'Background',
+    swapColors: 'Swap Colors (X)',
+    recentColors: 'Recent Colors',
+    // ── Rulers ──
+    rulers: 'Rulers',
+    // ── Layer effects ──
+    layerEffects: 'Layer Effects',
+    effectDropShadow: 'Drop Shadow',
+    effectOuterStroke: 'Outer Stroke',
+    effectInnerGlow: 'Inner Glow',
+    effectColor: 'Color',
+    effectBlur: 'Blur',
+    effectOffset: 'Offset',
+    effectWidth: 'Width',
+    // ── Layer groups ──
+    addGroup2: 'Add Group',
+    groupFolder: 'Folder',
+    // ── Command palette ──
+    commandPalette: 'Command Palette',
+    commandSearch: 'Search commands...',
+    commandRecent: 'Recent',
+    commandNoMatch: 'No matching commands',
+    // ── Adjustment layers ──
+    addAdjustmentLayer: 'Add Adjustment Layer',
+    adjustmentBrightnessContrast: 'Brightness/Contrast',
+    adjustmentHueSaturation: 'Hue/Saturation',
+    adjustmentColorBalance: 'Color Balance',
+    adjustmentLayer: 'Adjustment',
   },
 } as const
 
@@ -2289,6 +2423,31 @@ function App() {
   const [eyedropperColor, setEyedropperColor] = useState('#000000')
   const [tempAdjustments, setTempAdjustments] = useState<ImageAdjustments>({ ...DEFAULT_ADJUSTMENTS })
   const imageLayerInputRef = useRef<HTMLInputElement>(null)
+  // ── Menu bar state ──
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const menuBarRef = useRef<HTMLDivElement>(null)
+  // ── Tool flyout state ──
+  const [flyoutGroup, setFlyoutGroup] = useState<ToolGroupDef | null>(null)
+  const [flyoutPos, setFlyoutPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // ── Color panel state ──
+  const [foregroundColor, setForegroundColor] = useState('#ffffff')
+  const [bgColor, setBgColor] = useState('#000000')
+  const [recentColors, setRecentColors] = useState<string[]>([])
+  const [showColorPanel, setShowColorPanel] = useState(false)
+  const [colorPanelTarget, setColorPanelTarget] = useState<'fg' | 'bg'>('fg')
+  // ── Rulers state ──
+  const [showRulers, setShowRulers] = useState(false)
+  const hRulerRef = useRef<HTMLCanvasElement>(null)
+  const vRulerRef = useRef<HTMLCanvasElement>(null)
+  // ── Command palette state ──
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [commandQuery, setCommandQuery] = useState('')
+  const [commandIndex, setCommandIndex] = useState(0)
+  const [recentCommands, setRecentCommands] = useState<string[]>([])
+  const commandInputRef = useRef<HTMLInputElement>(null)
+  const filteredCommandsRef = useRef<{ id: string; label: string; shortcut?: string; action: () => void }[]>([])
+  const executeCommandRef = useRef<(cmd: { id: string; label: string; shortcut?: string; action: () => void }) => void>(() => {})
   const [pendingMaskAction, setPendingMaskAction] = useState<PendingMaskAction | null>(null)
   const [maskApplyScope, setMaskApplyScope] = useState<MaskApplyScope>('full')
   const [maskPreviewOpacity, setMaskPreviewOpacity] = useState(0.58)
@@ -3658,6 +3817,23 @@ function App() {
       const key = e.key.toLowerCase()
       const meta = e.metaKey || e.ctrlKey
 
+      // Command palette
+      if (meta && key === 'k') {
+        e.preventDefault()
+        setCommandPaletteOpen(p => !p)
+        setCommandQuery('')
+        setCommandIndex(0)
+        return
+      }
+
+      if (commandPaletteOpen) {
+        if (key === 'escape') { e.preventDefault(); setCommandPaletteOpen(false); return }
+        if (key === 'arrowdown') { e.preventDefault(); setCommandIndex(i => Math.min(i + 1, filteredCommandsRef.current.length - 1)); return }
+        if (key === 'arrowup') { e.preventDefault(); setCommandIndex(i => Math.max(i - 1, 0)); return }
+        if (key === 'enter' && filteredCommandsRef.current[commandIndex]) { e.preventDefault(); executeCommandRef.current(filteredCommandsRef.current[commandIndex]); return }
+        return // don't process other shortcuts while palette is open
+      }
+
       if (exportDialogOpen && key === 'escape') {
         e.preventDefault()
         setExportDialogOpen(false)
@@ -3807,6 +3983,11 @@ function App() {
         duplicateSelectedTextLayers()
         return
       }
+      if (key === 'x') {
+        e.preventDefault()
+        swapFgBg()
+        return
+      }
       if (key === 'g') {
         e.preventDefault()
         setShowGrid((p) => !p)
@@ -3915,7 +4096,7 @@ function App() {
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectedText, selectedTextIds, active, cropRect, cropPreviewDataUrl, tool, busy, selectedAssetIds.length, ui.selectionCleared, ui.cancelCrop, ui.textInsertArmed, exportDialogOpen, showShortcutsHelp, selectionMaskBounds])
+  }, [selectedText, selectedTextIds, active, cropRect, cropPreviewDataUrl, tool, busy, selectedAssetIds.length, ui.selectionCleared, ui.cancelCrop, ui.textInsertArmed, exportDialogOpen, showShortcutsHelp, selectionMaskBounds, commandPaletteOpen, commandIndex])
 
   useEffect(() => {
     return () => {
@@ -7412,6 +7593,324 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
     }
   }
 
+  /* ═══ Menu bar: close on outside click ═══ */
+  useEffect(() => {
+    if (!openMenu) return
+    function onClickOutside(e: MouseEvent) {
+      if (menuBarRef.current && !menuBarRef.current.contains(e.target as Node)) {
+        setOpenMenu(null)
+      }
+    }
+    window.addEventListener('mousedown', onClickOutside)
+    return () => window.removeEventListener('mousedown', onClickOutside)
+  }, [openMenu])
+
+  /* ═══ Tool flyout: close on outside click ═══ */
+  useEffect(() => {
+    if (!flyoutGroup) return
+    function onClickAnywhere() { setFlyoutGroup(null) }
+    window.addEventListener('mousedown', onClickAnywhere)
+    return () => window.removeEventListener('mousedown', onClickAnywhere)
+  }, [flyoutGroup])
+
+  function handleToolBtnContextMenu(e: ReactMouseEvent, group: ToolGroupDef) {
+    if (group.tools.length <= 1) return
+    e.preventDefault()
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setFlyoutPos({ x: rect.right + 4, y: rect.top })
+    setFlyoutGroup(group)
+  }
+
+  function handleToolBtnLongPress(group: ToolGroupDef, rect: DOMRect) {
+    if (group.tools.length <= 1) return
+    setFlyoutPos({ x: rect.right + 4, y: rect.top })
+    setFlyoutGroup(group)
+  }
+
+  /* ═══ Blend mode setter ═══ */
+  function setUnifiedLayerBlendMode(ref: UnifiedLayerRef, mode: BlendMode) {
+    if (!active) return
+    if (ref.type === 'text') {
+      updateActive((a) => ({
+        ...a,
+        texts: a.texts.map((t) => t.id === ref.id ? { ...t, blendMode: mode } : t),
+      }))
+    } else if (ref.type === 'image') {
+      updateActive((a) => ({
+        ...a,
+        imageLayers: (a.imageLayers ?? []).map((il) => il.id === ref.id ? { ...il, blendMode: mode } : il),
+      }))
+    }
+  }
+
+  function getUnifiedLayerBlendMode(ref: UnifiedLayerRef): BlendMode {
+    if (ref.type === 'text') {
+      const t = active?.texts.find((t) => t.id === ref.id)
+      return t?.blendMode ?? 'normal'
+    }
+    if (ref.type === 'image') {
+      const il = (active?.imageLayers ?? []).find((il) => il.id === ref.id)
+      return il?.blendMode ?? 'normal'
+    }
+    return 'normal'
+  }
+
+  /* ═══ Layer effects setter ═══ */
+  function setUnifiedLayerEffects(ref: UnifiedLayerRef, effects: LayerEffects) {
+    if (!active) return
+    if (ref.type === 'text') {
+      updateActive((a) => ({
+        ...a,
+        texts: a.texts.map((t) => t.id === ref.id ? { ...t, effects } : t),
+      }))
+    } else if (ref.type === 'image') {
+      updateActive((a) => ({
+        ...a,
+        imageLayers: (a.imageLayers ?? []).map((il) => il.id === ref.id ? { ...il, effects } : il),
+      }))
+    }
+  }
+
+  function getUnifiedLayerEffects(ref: UnifiedLayerRef): LayerEffects {
+    if (ref.type === 'text') {
+      return active?.texts.find((t) => t.id === ref.id)?.effects ?? {}
+    }
+    if (ref.type === 'image') {
+      return (active?.imageLayers ?? []).find((il) => il.id === ref.id)?.effects ?? {}
+    }
+    return {}
+  }
+
+  /* ═══ Color panel helpers ═══ */
+  function pushRecentColor(hex: string) {
+    setRecentColors(prev => {
+      const next = [hex, ...prev.filter(c => c !== hex)].slice(0, 12)
+      return next
+    })
+  }
+
+  function swapFgBg() {
+    const oldFg = foregroundColor
+    const oldBg = bgColor
+    setForegroundColor(oldBg)
+    setBgColor(oldFg)
+  }
+
+  /* ═══ Rulers drawing ═══ */
+  useEffect(() => {
+    if (!showRulers || !active) return
+    const hCanvas = hRulerRef.current
+    const vCanvas = vRulerRef.current
+    if (!hCanvas || !vCanvas) return
+    const wrapEl = wrapRef.current
+    if (!wrapEl) return
+    const wrapRect = wrapEl.getBoundingClientRect()
+    hCanvas.width = wrapRect.width
+    hCanvas.height = 20
+    vCanvas.width = 20
+    vCanvas.height = wrapRect.height
+    drawRuler(hCanvas, 'horizontal', canvasZoom, canvasOffset.x + fit.ox, wrapRect.width)
+    drawRuler(vCanvas, 'vertical', canvasZoom, canvasOffset.y + fit.oy, wrapRect.height)
+  }, [showRulers, active, canvasZoom, canvasOffset, fit])
+
+  function drawRuler(canvas: HTMLCanvasElement, orientation: 'horizontal' | 'vertical', zoom: number, offset: number, length: number) {
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.fillStyle = 'rgba(30, 30, 56, 0.95)'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    const baseStep = zoom >= 2 ? 10 : zoom >= 0.5 ? 50 : 100
+    ctx.fillStyle = 'rgba(255,255,255,0.4)'
+    ctx.font = '9px monospace'
+
+    const startWorld = -offset / zoom
+    const startTick = Math.floor(startWorld / baseStep) * baseStep
+    for (let world = startTick; world * zoom + offset < length; world += baseStep) {
+      const pos = world * zoom + offset
+      if (pos < 0) continue
+      ctx.fillStyle = 'rgba(255,255,255,0.25)'
+      if (orientation === 'horizontal') {
+        ctx.fillRect(pos, 14, 1, 6)
+        ctx.fillStyle = 'rgba(255,255,255,0.4)'
+        ctx.fillText(String(Math.round(world)), pos + 2, 12)
+      } else {
+        ctx.fillRect(14, pos, 6, 1)
+        ctx.save()
+        ctx.translate(10, pos + 2)
+        ctx.rotate(-Math.PI / 2)
+        ctx.fillStyle = 'rgba(255,255,255,0.4)'
+        ctx.fillText(String(Math.round(world)), 0, 0)
+        ctx.restore()
+      }
+    }
+  }
+
+  /* ═══ Layer groups ═══ */
+  function addLayerGroup() {
+    if (!active) return
+    const id = uid('group')
+    const folder: LayerFolder = {
+      id,
+      name: `${ui.groupFolder} ${(active.layerFolders ?? []).length + 1}`,
+      visible: true,
+      collapsed: false,
+      opacity: 1,
+      blendMode: 'normal',
+    }
+    updateActive((a) => ({
+      ...a,
+      layerFolders: [...(a.layerFolders ?? []), folder],
+      layerOrder: [...(a.layerOrder ?? []), { type: 'group' as const, id }],
+    }))
+  }
+
+  /* ═══ Adjustment layers ═══ */
+  function addAdjustmentLayer(adjType: AdjustmentLayerItem['type']) {
+    if (!active) return
+    const id = uid('adj')
+    const nameMap = {
+      'brightness-contrast': ui.adjustmentBrightnessContrast,
+      'hue-saturation': ui.adjustmentHueSaturation,
+      'color-balance': ui.adjustmentColorBalance,
+    }
+    const adj: AdjustmentLayerItem = {
+      id,
+      name: nameMap[adjType],
+      type: adjType,
+      visible: true,
+      locked: false,
+      opacity: 1,
+      brightness: 0,
+      contrast: 0,
+      hue: 0,
+      saturation: 0,
+      lightness: 0,
+    }
+    updateActive((a) => ({
+      ...a,
+      adjustmentLayers: [...(a.adjustmentLayers ?? []), adj],
+      layerOrder: [...(a.layerOrder ?? []), { type: 'adjustment' as const, id }],
+    }))
+  }
+
+  function getAdjustmentCssFilter(adj: AdjustmentLayerItem): string {
+    const parts: string[] = []
+    if (adj.brightness) parts.push(`brightness(${1 + adj.brightness / 100})`)
+    if (adj.contrast) parts.push(`contrast(${1 + adj.contrast / 100})`)
+    if (adj.saturation) parts.push(`saturate(${1 + adj.saturation / 100})`)
+    if (adj.hue) parts.push(`hue-rotate(${adj.hue}deg)`)
+    return parts.length ? parts.join(' ') : 'none'
+  }
+
+  // Apply adjustment layers as CSS filters on the base image container
+  const adjustmentCssFilter = useMemo(() => {
+    if (!active) return 'none'
+    const adjs = (active.adjustmentLayers ?? []).filter(a => a.visible)
+    if (!adjs.length) return 'none'
+    return adjs.map(a => getAdjustmentCssFilter(a)).filter(f => f !== 'none').join(' ') || 'none'
+  }, [active])
+
+  /* ═══ Command palette ═══ */
+  type CommandItem = { id: string; label: string; shortcut?: string; action: () => void }
+
+  const commandItems = useMemo<CommandItem[]>(() => [
+    { id: 'tool-restore', label: ui.aiRestore, shortcut: 'B', action: () => setTool('restore') },
+    { id: 'tool-eraser', label: ui.aiEraser, shortcut: 'E', action: () => setTool('eraser') },
+    { id: 'tool-select', label: ui.aiSelect, shortcut: 'S', action: () => setTool('select') },
+    { id: 'tool-text', label: ui.text, shortcut: 'T', action: () => setTool('text') },
+    { id: 'tool-crop', label: ui.crop, shortcut: 'C', action: () => setTool('crop') },
+    { id: 'tool-move', label: ui.move, shortcut: 'M', action: () => setTool('move') },
+    { id: 'tool-pen', label: ui.toolPen, shortcut: 'P', action: () => setTool('pen') },
+    { id: 'tool-shape', label: ui.toolShape, shortcut: 'U', action: () => setTool('shape') },
+    { id: 'tool-blur', label: ui.toolBlur, shortcut: 'R', action: () => setTool('blur') },
+    { id: 'tool-dodge', label: ui.toolDodge, shortcut: 'O', action: () => setTool('dodge') },
+    { id: 'tool-adjust', label: ui.toolAdjust, shortcut: 'J', action: () => setTool('adjust') },
+    { id: 'tool-eyedropper', label: ui.toolEyedropper, shortcut: 'I', action: () => setTool('eyedropper') },
+    { id: 'tool-hand', label: ui.toolHand, shortcut: 'H', action: () => setTool('hand') },
+    { id: 'undo', label: ui.undoAction, shortcut: 'Ctrl+Z', action: () => undoRestore() },
+    { id: 'redo', label: ui.redoAction, shortcut: 'Shift+Ctrl+Z', action: () => redoRestore() },
+    { id: 'toggle-grid', label: ui.toggleGrid, shortcut: 'G', action: () => setShowGrid(p => !p) },
+    { id: 'toggle-rulers', label: ui.menuShowRulers, action: () => setShowRulers(p => !p) },
+    { id: 'zoom-in', label: ui.zoomIn, shortcut: '+', action: () => zoomBy(0.25) },
+    { id: 'zoom-out', label: ui.zoomOut, shortcut: '-', action: () => zoomBy(-0.25) },
+    { id: 'zoom-reset', label: ui.zoomReset, shortcut: 'Ctrl+0', action: () => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) } },
+    { id: 'add-text', label: ui.addText, action: () => addTextFromMenu() },
+    { id: 'export', label: ui.exportNow, action: () => setExportDialogOpen(true) },
+    { id: 'settings', label: ui.settings, action: () => openSettings() },
+    { id: 'flatten', label: ui.menuFlattenLayers, action: () => flattenImageLayers() },
+    { id: 'add-group', label: ui.addGroup2, action: () => addLayerGroup() },
+    { id: 'adj-brightness', label: ui.adjustmentBrightnessContrast, action: () => addAdjustmentLayer('brightness-contrast') },
+    { id: 'adj-hue', label: ui.adjustmentHueSaturation, action: () => addAdjustmentLayer('hue-saturation') },
+  ], [ui, active])
+
+  const filteredCommands = useMemo(() => {
+    if (!commandQuery.trim()) {
+      // Show recent commands first
+      const recent = recentCommands.map(id => commandItems.find(c => c.id === id)).filter((c): c is CommandItem => !!c)
+      const rest = commandItems.filter(c => !recentCommands.includes(c.id))
+      return [...recent, ...rest].slice(0, 20)
+    }
+    const q = commandQuery.toLowerCase()
+    return commandItems.filter(c => c.label.toLowerCase().includes(q) || (c.shortcut ?? '').toLowerCase().includes(q)).slice(0, 20)
+  }, [commandQuery, commandItems, recentCommands])
+  filteredCommandsRef.current = filteredCommands
+
+  function executeCommand(cmd: CommandItem) {
+    cmd.action()
+    setCommandPaletteOpen(false)
+    setCommandQuery('')
+    setRecentCommands(prev => [cmd.id, ...prev.filter(id => id !== cmd.id)].slice(0, 5))
+  }
+  executeCommandRef.current = executeCommand
+
+  /* ═══ Menu item definitions ═══ */
+  type MenuItem = { label: string; shortcut?: string; action: () => void; disabled?: boolean; divider?: boolean }
+
+  const menuDefinitions = useMemo(() => ({
+    file: [
+      { label: ui.import, action: () => document.querySelector<HTMLInputElement>('.optionsBar input[type="file"]')?.click() },
+      { label: ui.exportNow, action: () => setExportDialogOpen(true), disabled: assets.length === 0 },
+      { label: ui.settings, action: () => openSettings() },
+    ] as MenuItem[],
+    edit: [
+      { label: ui.undoAction, shortcut: 'Ctrl+Z', action: () => undoRestore() },
+      { label: ui.redoAction, shortcut: 'Shift+Ctrl+Z', action: () => redoRestore() },
+      { label: ui.clearMask, action: () => active && updateActive((a) => ({ ...a, maskStrokes: [] })), disabled: !active, divider: true },
+      { label: ui.clearTexts, action: () => active && updateActive((a) => ({ ...a, texts: [] })), disabled: !active },
+    ] as MenuItem[],
+    image: [
+      { label: ui.imageResize, action: () => { if (active) { setResizeWidth(active.width); setResizeHeight(active.height) } }, disabled: !active },
+      { label: ui.menuRotate90, action: () => { /* rotate is handled via options bar */ }, disabled: !active },
+      { label: ui.flipH, action: () => { /* handled via options bar flip */ }, disabled: !active },
+      { label: ui.flipV, action: () => { /* handled via options bar flip */ }, disabled: !active },
+      { label: ui.adjustAutoEnhance, action: () => { /* auto enhance handler */ }, disabled: !active },
+    ] as MenuItem[],
+    layer: [
+      { label: ui.layerAddText, action: () => { addTextFromMenu(); setTool('text') } },
+      { label: ui.layerAddImage, action: () => imageLayerInputRef.current?.click() },
+      { label: ui.addGroup2, action: () => addLayerGroup() },
+      { label: ui.addAdjustmentLayer, action: () => addAdjustmentLayer('brightness-contrast'), divider: true },
+      { label: ui.menuFlattenLayers, action: () => flattenImageLayers(), disabled: !active || !(active.imageLayers ?? []).length },
+      { label: ui.menuDeleteLayer, action: () => selectedUnifiedLayerRef && deleteUnifiedLayer(selectedUnifiedLayerRef), disabled: !selectedUnifiedLayerRef },
+    ] as MenuItem[],
+    select: [
+      { label: ui.selectionInvert, action: () => { /* invert selection mask */ }, disabled: !selectionMaskDataUrl },
+      { label: ui.menuExpandSelection, action: () => { /* expand */ }, disabled: !selectionMaskDataUrl },
+      { label: ui.menuContractSelection, action: () => { /* contract */ }, disabled: !selectionMaskDataUrl },
+      { label: ui.menuFeatherSelection, action: () => { /* feather */ }, disabled: !selectionMaskDataUrl },
+      { label: ui.menuClearSelection, action: () => { setSelectionMaskDataUrl(null); setSelectionMaskImage(null); setSelectionMaskBounds(null) }, disabled: !selectionMaskDataUrl },
+    ] as MenuItem[],
+    view: [
+      { label: ui.menuShowGrid, shortcut: 'G', action: () => setShowGrid(p => !p) },
+      { label: ui.menuShowRulers, action: () => setShowRulers(p => !p) },
+      { label: ui.menuShowMinimap, action: () => { /* minimap toggle placeholder */ }, divider: true },
+      { label: ui.menuZoomIn, shortcut: '+', action: () => zoomBy(0.25) },
+      { label: ui.menuZoomOut, shortcut: '-', action: () => zoomBy(-0.25) },
+      { label: ui.menuZoomReset, shortcut: 'Ctrl+0', action: () => { setZoom(1); setCanvasOffset({ x: 0, y: 0 }) } },
+    ] as MenuItem[],
+  }), [ui, active, assets, selectedUnifiedLayerRef, selectionMaskDataUrl])
+
   return (
     <div className={`app ${uiDensity === 'compact' ? 'densityCompact' : ''} ${showShortcutTips ? '' : 'shortcutsOff'} ${tooltipDensity === 'detailed' ? 'tooltipDetailed' : 'tooltipSimple'} ${tooltipsMuted ? 'tooltipsMuted' : ''} ${animationStrength === 'low' ? 'animLow' : animationStrength === 'high' ? 'animHigh' : ''} ${assets.length === 0 ? 'noSidebar noFilmstrip' : ''}`} onDragOver={onDragOverRoot} onDragLeave={onDragLeaveRoot} onDrop={onDropRoot}>
       {/* ═══ Header Bar ═══ */}
@@ -7460,6 +7959,40 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
             ⚙
           </button>
         </div>
+      </div>
+      {/* ═══ Menu Bar ═══ */}
+      <div className="menuBar" ref={menuBarRef}>
+        {(['file', 'edit', 'image', 'layer', 'select', 'view'] as const).map((menuKey) => {
+          const labelMap: Record<string, string> = { file: ui.menuFile, edit: ui.menuEdit, image: ui.menuImage, layer: ui.menuLayer, select: ui.menuSelect, view: ui.menuView }
+          return (
+            <div key={menuKey} className="menuBarItem">
+              <button
+                className={`menuBarBtn ${openMenu === menuKey ? 'active' : ''}`}
+                onClick={() => setOpenMenu(openMenu === menuKey ? null : menuKey)}
+                onMouseEnter={() => openMenu && setOpenMenu(menuKey)}
+              >
+                {labelMap[menuKey]}
+              </button>
+              {openMenu === menuKey ? (
+                <div className="menuDropdown">
+                  {(menuDefinitions[menuKey] ?? []).map((item, idx) => (
+                    <div key={idx}>
+                      {item.divider && idx > 0 ? <div className="menuDivider" /> : null}
+                      <button
+                        className="menuDropdownItem"
+                        disabled={item.disabled}
+                        onClick={() => { item.action(); setOpenMenu(null) }}
+                      >
+                        <span className="menuItemLabel">{item.label}</span>
+                        {item.shortcut ? <span className="menuItemShortcut">{item.shortcut}</span> : null}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )
+        })}
       </div>
       {showMobileQuickActions ? (
         <div className="mobileQuickRail" aria-label="mobile quick actions">
@@ -7944,63 +8477,126 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
         </div>
       ) : null}
 
-      {/* ═══ Left Toolbar ═══ */}
+      {/* ═══ Left Toolbar (with tool groups & flyout) ═══ */}
       <div className={`toolbarLeft ${guideFocusTarget === 'tools' ? 'guideFlash' : ''}`}>
-        <button className={`toolBtn ${tool === 'restore' ? 'active' : ''}`} title={ui.aiRestore} aria-label={ui.aiRestore} data-tip={ui.aiRestore} data-key="B" onClick={() => setTool('restore')} disabled={!active}>
-          <FontAwesomeIcon icon={faWandMagicSparkles} />
-        </button>
-        <button className={`toolBtn ${tool === 'select' ? 'active' : ''}`} title={ui.aiSelect} aria-label={ui.aiSelect} data-tip={ui.aiSelect} data-key="S" onClick={() => setTool('select')} disabled={!active}>
-          <FontAwesomeIcon icon={faObjectGroup} />
-        </button>
-        <button className={`toolBtn ${tool === 'move' ? 'active' : ''}`} title={ui.move} aria-label={ui.move} data-tip={ui.move} data-key="M" onClick={() => setTool('move')} disabled={!active}>
-          <FontAwesomeIcon icon={faArrowsUpDownLeftRight} />
-        </button>
-        <button className={`toolBtn ${tool === 'eraser' ? 'active' : ''}`} title={ui.aiEraser} aria-label={ui.aiEraser} data-tip={ui.aiEraser} data-key="E" onClick={() => setTool('eraser')} disabled={!active}>
-          <FontAwesomeIcon icon={faEraser} />
-        </button>
+        {(() => {
+          const toolIconMap: Record<Tool, typeof faWandMagicSparkles> = {
+            restore: faWandMagicSparkles, eraser: faEraser, select: faObjectGroup, move: faArrowsUpDownLeftRight,
+            hand: faHand, text: faFont, pen: faPen, shape: faShapes, crop: faCropSimple,
+            blur: faDroplet, dodge: faSun, adjust: faSliders, eyedropper: faEyeDropper,
+          }
+          const toolLabelMap: Record<Tool, string> = {
+            restore: ui.aiRestore, eraser: ui.aiEraser, select: ui.aiSelect, move: ui.move,
+            hand: ui.toolHand, text: ui.textSelectMode, pen: ui.toolPen, shape: ui.toolShape,
+            crop: ui.crop, blur: ui.toolBlur, dodge: ui.toolDodge, adjust: ui.toolAdjust, eyedropper: ui.toolEyedropper,
+          }
+          const toolKeyMap: Record<Tool, string> = {
+            restore: 'B', eraser: 'E', select: 'S', move: 'M', hand: 'H', text: 'T',
+            pen: 'P', shape: 'U', crop: 'C', blur: 'R', dodge: 'O', adjust: 'J', eyedropper: 'I',
+          }
+          const rendered = new Set<Tool>()
+          return TOOL_GROUPS.map((group, gi) => {
+            // Show the currently active tool from the group, or the first one
+            const activeTool = group.tools.find(t => t === tool) ?? group.tools[0]
+            const hasMultiple = group.tools.length > 1
+            group.tools.forEach(t => rendered.add(t))
+            return (
+              <div key={gi}>
+                {gi > 0 && gi % 2 === 0 ? <div className="toolbarSep" /> : null}
+                <div className="toolBtnWrap">
+                  <button
+                    className={`toolBtn ${group.tools.includes(tool) ? 'active' : ''}`}
+                    title={toolLabelMap[activeTool]}
+                    aria-label={toolLabelMap[activeTool]}
+                    data-tip={toolLabelMap[activeTool]}
+                    data-key={toolKeyMap[activeTool]}
+                    onClick={() => setTool(activeTool)}
+                    onContextMenu={(e) => handleToolBtnContextMenu(e, group)}
+                    onMouseDown={(e) => {
+                      if (e.button !== 0 || !hasMultiple) return
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      longPressTimer.current = setTimeout(() => handleToolBtnLongPress(group, rect), 300)
+                    }}
+                    onMouseUp={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
+                    onMouseLeave={() => { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
+                    disabled={!active}
+                  >
+                    <FontAwesomeIcon icon={toolIconMap[activeTool]} />
+                    {hasMultiple ? <span className="toolGroupTriangle">▸</span> : null}
+                  </button>
+                </div>
+                {tool === 'text' && activeTool === 'text' && active ? (
+                  <button className="toolBtn" title={ui.addTextLayer} aria-label={ui.addTextLayer} data-tip={ui.addTextLayer} onClick={addTextFromMenu}>
+                    <FontAwesomeIcon icon={faPlus} />
+                  </button>
+                ) : null}
+              </div>
+            )
+          })
+        })()}
         <div className="toolbarSep" />
-        <button className={`toolBtn ${tool === 'text' ? 'active' : ''}`} title={ui.textSelectMode} aria-label={ui.textSelectMode} data-tip={ui.textSelectMode} data-key="T" onClick={() => setTool('text')} disabled={!active}>
-          <FontAwesomeIcon icon={faFont} />
-        </button>
-        {tool === 'text' && active ? (
-          <button className="toolBtn" title={ui.addTextLayer} aria-label={ui.addTextLayer} data-tip={ui.addTextLayer} onClick={addTextFromMenu}>
-            <FontAwesomeIcon icon={faPlus} />
-          </button>
-        ) : null}
-        <button className={`toolBtn ${tool === 'crop' ? 'active' : ''}`} title={ui.crop} aria-label={ui.crop} data-tip={ui.crop} data-key="C" onClick={() => setTool('crop')} disabled={!active}>
-          <FontAwesomeIcon icon={faCropSimple} />
-        </button>
-        <div className="toolbarSep" />
-        <button className={`toolBtn ${tool === 'pen' ? 'active' : ''}`} title={ui.toolPen} aria-label={ui.toolPen} data-tip={ui.toolPen} data-key="P" onClick={() => setTool('pen')} disabled={!active}>
-          <FontAwesomeIcon icon={faPen} />
-        </button>
-        <button className={`toolBtn ${tool === 'shape' ? 'active' : ''}`} title={ui.toolShape} aria-label={ui.toolShape} data-tip={ui.toolShape} data-key="U" onClick={() => setTool('shape')} disabled={!active}>
-          <FontAwesomeIcon icon={faShapes} />
-        </button>
-        <div className="toolbarSep" />
-        <button className={`toolBtn ${tool === 'blur' ? 'active' : ''}`} title={ui.toolBlur} aria-label={ui.toolBlur} data-tip={ui.toolBlur} data-key="R" onClick={() => setTool('blur')} disabled={!active}>
-          <FontAwesomeIcon icon={faDroplet} />
-        </button>
-        <button className={`toolBtn ${tool === 'dodge' ? 'active' : ''}`} title={ui.toolDodge} aria-label={ui.toolDodge} data-tip={ui.toolDodge} data-key="O" onClick={() => setTool('dodge')} disabled={!active}>
-          <FontAwesomeIcon icon={faSun} />
-        </button>
-        <div className="toolbarSep" />
-        <button className={`toolBtn ${tool === 'adjust' ? 'active' : ''}`} title={ui.toolAdjust} aria-label={ui.toolAdjust} data-tip={ui.toolAdjust} data-key="J" onClick={() => setTool('adjust')} disabled={!active}>
-          <FontAwesomeIcon icon={faSliders} />
-        </button>
-        <button className={`toolBtn ${tool === 'eyedropper' ? 'active' : ''}`} title={ui.toolEyedropper} aria-label={ui.toolEyedropper} data-tip={ui.toolEyedropper} data-key="I" onClick={() => setTool('eyedropper')} disabled={!active}>
-          <FontAwesomeIcon icon={faEyeDropper} />
-        </button>
-        <button className={`toolBtn ${tool === 'hand' ? 'active' : ''}`} title={ui.toolHand} aria-label={ui.toolHand} data-tip={ui.toolHand} data-key="H" onClick={() => setTool('hand')} disabled={!active}>
-          <FontAwesomeIcon icon={faHand} />
-        </button>
+        {/* Foreground/Background color swatches */}
+        <div className="toolColorSwatches">
+          <div
+            className="toolColorFg"
+            style={{ background: foregroundColor }}
+            title={ui.foregroundColor}
+            onClick={() => { setColorPanelTarget('fg'); setShowColorPanel(p => !p) }}
+          />
+          <div
+            className="toolColorBg"
+            style={{ background: bgColor }}
+            title={ui.backgroundColor}
+            onClick={() => { setColorPanelTarget('bg'); setShowColorPanel(p => !p) }}
+          />
+          <button className="toolColorSwap" title={ui.swapColors} onClick={swapFgBg}>⇄</button>
+        </div>
       </div>
+      {/* Tool flyout */}
+      {flyoutGroup ? (
+        <div className="toolFlyout" style={{ top: flyoutPos.y, left: flyoutPos.x }} onMouseDown={(e) => e.stopPropagation()}>
+          {flyoutGroup.tools.map((t) => {
+            const toolLabelMap2: Record<Tool, string> = {
+              restore: ui.aiRestore, eraser: ui.aiEraser, select: ui.aiSelect, move: ui.move,
+              hand: ui.toolHand, text: ui.textSelectMode, pen: ui.toolPen, shape: ui.toolShape,
+              crop: ui.crop, blur: ui.toolBlur, dodge: ui.toolDodge, adjust: ui.toolAdjust, eyedropper: ui.toolEyedropper,
+            }
+            const toolKeyMap2: Record<Tool, string> = {
+              restore: 'B', eraser: 'E', select: 'S', move: 'M', hand: 'H', text: 'T',
+              pen: 'P', shape: 'U', crop: 'C', blur: 'R', dodge: 'O', adjust: 'J', eyedropper: 'I',
+            }
+            const toolIconMap2: Record<Tool, typeof faWandMagicSparkles> = {
+              restore: faWandMagicSparkles, eraser: faEraser, select: faObjectGroup, move: faArrowsUpDownLeftRight,
+              hand: faHand, text: faFont, pen: faPen, shape: faShapes, crop: faCropSimple,
+              blur: faDroplet, dodge: faSun, adjust: faSliders, eyedropper: faEyeDropper,
+            }
+            return (
+              <button
+                key={t}
+                className={`flyoutItem ${t === tool ? 'active' : ''}`}
+                onClick={() => { setTool(t); setFlyoutGroup(null) }}
+              >
+                <FontAwesomeIcon icon={toolIconMap2[t]} className="flyoutIcon" />
+                <span className="flyoutLabel">{toolLabelMap2[t]}</span>
+                <span className="flyoutKey">{toolKeyMap2[t]}</span>
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
 
       {/* ═══ Canvas ═══ */}
       <div
-        className={`canvasWrap ${tool === 'text' ? 'textMode' : ''} ${tool === 'crop' ? 'cropMode' : ''} ${tool === 'move' ? 'moveMode' : ''} ${tool === 'hand' ? 'handMode' : ''} ${tool === 'eyedropper' ? 'eyedropperMode' : ''} ${tool === 'pen' ? 'penMode' : ''} ${guideFocusTarget === 'canvas' ? 'guideFlash' : ''}`}
+        className={`canvasWrap ${showRulers ? 'withRulers' : ''} ${tool === 'text' ? 'textMode' : ''} ${tool === 'crop' ? 'cropMode' : ''} ${tool === 'move' ? 'moveMode' : ''} ${tool === 'hand' ? 'handMode' : ''} ${tool === 'eyedropper' ? 'eyedropperMode' : ''} ${tool === 'pen' ? 'penMode' : ''} ${guideFocusTarget === 'canvas' ? 'guideFlash' : ''}`}
         ref={wrapRef}
       >
+        {showRulers ? (
+          <>
+            <canvas className="rulerH" ref={hRulerRef} />
+            <canvas className="rulerV" ref={vRulerRef} />
+            <div className="rulerCorner" />
+          </>
+        ) : null}
           {active ? (
             <div className={`canvasHistoryDock ${cropDockClass}`}>
               <button
@@ -8129,6 +8725,11 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
               <Stage
                 ref={(n) => {
                   stageRef.current = n
+                  // Apply adjustment layer CSS filter to canvas container
+                  if (n) {
+                    const container = n.container()
+                    if (container) container.style.filter = adjustmentCssFilter
+                  }
                 }}
                dragDistance={5}
                width={wrapSize.w}
@@ -8446,6 +9047,7 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   {orderedImageLayers.filter((l) => l.visible).map((l) => {
                     const loadedImg = loadedImageLayers[l.id]
                     if (!loadedImg) return null
+                    const eff = l.effects ?? {}
                     return (
                       <KonvaImage
                         key={l.id}
@@ -8454,6 +9056,13 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                         width={l.width} height={l.height}
                         opacity={l.opacity}
                         rotation={l.rotation}
+                        globalCompositeOperation={blendModeToComposite(l.blendMode)}
+                        shadowColor={eff.dropShadow?.enabled ? eff.dropShadow.color : undefined}
+                        shadowBlur={eff.dropShadow?.enabled ? eff.dropShadow.blur : undefined}
+                        shadowOffsetX={eff.dropShadow?.enabled ? eff.dropShadow.offsetX : undefined}
+                        shadowOffsetY={eff.dropShadow?.enabled ? eff.dropShadow.offsetY : undefined}
+                        stroke={eff.outerStroke?.enabled ? eff.outerStroke.color : undefined}
+                        strokeWidth={eff.outerStroke?.enabled ? eff.outerStroke.width : undefined}
                         listening={false}
                       />
                     )
@@ -9462,9 +10071,59 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           </button>
           {accordionState.layers && active ? (
             <div className="accordionBody layerPanelBody">
+              {/* Blend mode dropdown (above layer list) */}
+              {selectedUnifiedLayerRef && (selectedUnifiedLayerRef.type === 'text' || selectedUnifiedLayerRef.type === 'image') ? (
+                <div className="psBlendModeRow">
+                  <span className="propLabel">{ui.blendMode}</span>
+                  <select
+                    className="select psBlendSelect"
+                    value={getUnifiedLayerBlendMode(selectedUnifiedLayerRef)}
+                    onChange={(e) => setUnifiedLayerBlendMode(selectedUnifiedLayerRef, e.target.value as BlendMode)}
+                  >
+                    {BLEND_MODE_OPTIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              ) : null}
+
               {/* Layer list - reversed so top layer is visually on top */}
               <div className="psLayerList">
                 {[...unifiedLayers].reverse().map((ref) => {
+                  // Group/folder rendering
+                  if (ref.type === 'group') {
+                    const folder = (active.layerFolders ?? []).find(f => f.id === ref.id)
+                    if (!folder) return null
+                    return (
+                      <div key={`group-${ref.id}`} className={`psLayerItem psLayerGroup ${selectedUnifiedLayerRef?.type === 'group' && selectedUnifiedLayerRef?.id === ref.id ? 'selected' : ''}`}
+                        onClick={() => selectUnifiedLayer(ref)}
+                      >
+                        <button className="psLayerEye" onClick={(e) => { e.stopPropagation(); updateActive((a) => ({ ...a, layerFolders: (a.layerFolders ?? []).map(f => f.id === ref.id ? { ...f, visible: !f.visible } : f) })) }}>{folder.visible ? '👁' : ''}</button>
+                        <div className="psLayerThumb"><FontAwesomeIcon icon={faFolder} style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16 }} /></div>
+                        <div className="psLayerInfo">
+                          <span className="psLayerName">{folder.name}</span>
+                          <span className="psLayerMeta">{ui.groupFolder}</span>
+                        </div>
+                        <button className="psLayerCollapseBtn" onClick={(e) => { e.stopPropagation(); updateActive((a) => ({ ...a, layerFolders: (a.layerFolders ?? []).map(f => f.id === ref.id ? { ...f, collapsed: !f.collapsed } : f) })) }}>
+                          {folder.collapsed ? '▸' : '▾'}
+                        </button>
+                      </div>
+                    )
+                  }
+                  // Adjustment layer rendering
+                  if (ref.type === 'adjustment') {
+                    const adj = (active.adjustmentLayers ?? []).find(a => a.id === ref.id)
+                    if (!adj) return null
+                    const isSelected = selectedUnifiedLayerRef?.type === 'adjustment' && selectedUnifiedLayerRef?.id === ref.id
+                    return (
+                      <div key={`adj-${ref.id}`} className={`psLayerItem psLayerAdj ${isSelected ? 'selected' : ''}`} onClick={() => selectUnifiedLayer(ref)}>
+                        <button className={`psLayerEye ${adj.visible ? '' : 'off'}`} onClick={(e) => { e.stopPropagation(); updateActive((a) => ({ ...a, adjustmentLayers: (a.adjustmentLayers ?? []).map(al => al.id === ref.id ? { ...al, visible: !al.visible } : al) })) }}>{adj.visible ? '👁' : ''}</button>
+                        <div className="psLayerThumb"><FontAwesomeIcon icon={faCircleHalfStroke} style={{ color: 'rgba(255,255,255,0.4)', fontSize: 16 }} /></div>
+                        <div className="psLayerInfo">
+                          <span className="psLayerName">{adj.name}</span>
+                          <span className="psLayerMeta">{ui.adjustmentLayer}</span>
+                        </div>
+                      </div>
+                    )
+                  }
                   const isSelected = selectedUnifiedLayerRef?.type === ref.type && selectedUnifiedLayerRef?.id === ref.id
                   const visible = isUnifiedLayerVisible(ref)
                   const locked = isUnifiedLayerLocked(ref)
@@ -9472,10 +10131,13 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                   const opacity = getUnifiedLayerOpacity(ref)
                   const isText = ref.type === 'text'
                   const imgLayer = !isText ? (active.imageLayers ?? []).find((il) => il.id === ref.id) : null
+                  // Check parent group indent
+                  const indent = ref.parentGroupId ? 16 : 0
                   return (
                     <div
                       key={`${ref.type}-${ref.id}`}
                       className={`psLayerItem ${isSelected ? 'selected' : ''}`}
+                      style={indent ? { paddingLeft: indent } : undefined}
                       onClick={() => selectUnifiedLayer(ref)}
                     >
                       <button
@@ -9536,6 +10198,77 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 </div>
               ) : null}
 
+              {/* Layer effects section for selected */}
+              {selectedUnifiedLayerRef && (selectedUnifiedLayerRef.type === 'text' || selectedUnifiedLayerRef.type === 'image') ? (() => {
+                const eff = getUnifiedLayerEffects(selectedUnifiedLayerRef)
+                const setEff = (patch: Partial<LayerEffects>) => setUnifiedLayerEffects(selectedUnifiedLayerRef, { ...eff, ...patch })
+                return (
+                  <div className="psEffectsSection">
+                    <div className="psEffectsHeader">{ui.layerEffects}</div>
+                    {/* Drop Shadow */}
+                    <div className="psEffectRow">
+                      <label><input type="checkbox" checked={!!eff.dropShadow?.enabled} onChange={(e) => setEff({ dropShadow: { color: eff.dropShadow?.color ?? '#000000', blur: eff.dropShadow?.blur ?? 8, offsetX: eff.dropShadow?.offsetX ?? 4, offsetY: eff.dropShadow?.offsetY ?? 4, enabled: e.target.checked } })} /> {ui.effectDropShadow}</label>
+                      {eff.dropShadow?.enabled ? (
+                        <div className="psEffectControls">
+                          <input type="color" value={eff.dropShadow.color} onChange={(e) => setEff({ dropShadow: { ...eff.dropShadow!, color: e.target.value } })} />
+                          <input type="range" min={0} max={40} value={eff.dropShadow.blur} onChange={(e) => setEff({ dropShadow: { ...eff.dropShadow!, blur: Number(e.target.value) } })} title={ui.effectBlur} />
+                        </div>
+                      ) : null}
+                    </div>
+                    {/* Outer Stroke */}
+                    <div className="psEffectRow">
+                      <label><input type="checkbox" checked={!!eff.outerStroke?.enabled} onChange={(e) => setEff({ outerStroke: { color: eff.outerStroke?.color ?? '#ffffff', width: eff.outerStroke?.width ?? 2, enabled: e.target.checked } })} /> {ui.effectOuterStroke}</label>
+                      {eff.outerStroke?.enabled ? (
+                        <div className="psEffectControls">
+                          <input type="color" value={eff.outerStroke.color} onChange={(e) => setEff({ outerStroke: { ...eff.outerStroke!, color: e.target.value } })} />
+                          <input type="range" min={1} max={20} value={eff.outerStroke.width} onChange={(e) => setEff({ outerStroke: { ...eff.outerStroke!, width: Number(e.target.value) } })} title={ui.effectWidth} />
+                        </div>
+                      ) : null}
+                    </div>
+                    {/* Inner Glow */}
+                    <div className="psEffectRow">
+                      <label><input type="checkbox" checked={!!eff.innerGlow?.enabled} onChange={(e) => setEff({ innerGlow: { color: eff.innerGlow?.color ?? '#ffffff', blur: eff.innerGlow?.blur ?? 10, enabled: e.target.checked } })} /> {ui.effectInnerGlow}</label>
+                      {eff.innerGlow?.enabled ? (
+                        <div className="psEffectControls">
+                          <input type="color" value={eff.innerGlow.color} onChange={(e) => setEff({ innerGlow: { ...eff.innerGlow!, color: e.target.value } })} />
+                          <input type="range" min={0} max={40} value={eff.innerGlow.blur} onChange={(e) => setEff({ innerGlow: { ...eff.innerGlow!, blur: Number(e.target.value) } })} title={ui.effectBlur} />
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              })() : null}
+
+              {/* Adjustment layer controls for selected */}
+              {selectedUnifiedLayerRef?.type === 'adjustment' ? (() => {
+                const adj = (active.adjustmentLayers ?? []).find(a => a.id === selectedUnifiedLayerRef.id)
+                if (!adj) return null
+                const setAdj = (patch: Partial<AdjustmentLayerItem>) => updateActive((a) => ({
+                  ...a,
+                  adjustmentLayers: (a.adjustmentLayers ?? []).map(al => al.id === adj.id ? { ...al, ...patch } : al),
+                }))
+                return (
+                  <div className="psAdjControls">
+                    {(adj.type === 'brightness-contrast' || adj.type === 'hue-saturation') ? (
+                      <>
+                        {adj.type === 'brightness-contrast' ? (
+                          <>
+                            <div className="psLayerOpacity"><span className="propLabel">{ui.adjustBrightness}</span><input className="smoothRange" type="range" min={-100} max={100} value={adj.brightness ?? 0} onChange={(e) => setAdj({ brightness: Number(e.target.value) })} /><span className="propSliderVal">{adj.brightness ?? 0}</span></div>
+                            <div className="psLayerOpacity"><span className="propLabel">{ui.adjustContrast}</span><input className="smoothRange" type="range" min={-100} max={100} value={adj.contrast ?? 0} onChange={(e) => setAdj({ contrast: Number(e.target.value) })} /><span className="propSliderVal">{adj.contrast ?? 0}</span></div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="psLayerOpacity"><span className="propLabel">{ui.adjustSaturation}</span><input className="smoothRange" type="range" min={-100} max={100} value={adj.saturation ?? 0} onChange={(e) => setAdj({ saturation: Number(e.target.value) })} /><span className="propSliderVal">{adj.saturation ?? 0}</span></div>
+                            <div className="psLayerOpacity"><span className="propLabel">Hue</span><input className="smoothRange" type="range" min={-180} max={180} value={adj.hue ?? 0} onChange={(e) => setAdj({ hue: Number(e.target.value) })} /><span className="propSliderVal">{adj.hue ?? 0}</span></div>
+                            <div className="psLayerOpacity"><span className="propLabel">Lightness</span><input className="smoothRange" type="range" min={-100} max={100} value={adj.lightness ?? 0} onChange={(e) => setAdj({ lightness: Number(e.target.value) })} /><span className="propSliderVal">{adj.lightness ?? 0}</span></div>
+                          </>
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                )
+              })() : null}
+
               {/* Layer toolbar */}
               <div className="psLayerToolbar">
                 <button className="psLayerToolBtn" onClick={() => imageLayerInputRef.current?.click()} title={ui.layerAddImage}>
@@ -9543,6 +10276,12 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
                 </button>
                 <button className="psLayerToolBtn" onClick={() => { addTextFromMenu(); setTool('text') }} title={ui.layerAddText}>
                   <FontAwesomeIcon icon={faFont} />
+                </button>
+                <button className="psLayerToolBtn" onClick={addLayerGroup} title={ui.addGroup2}>
+                  <FontAwesomeIcon icon={faFolderPlus} />
+                </button>
+                <button className="psLayerToolBtn" onClick={() => addAdjustmentLayer('brightness-contrast')} title={ui.addAdjustmentLayer}>
+                  <FontAwesomeIcon icon={faCircleHalfStroke} />
                 </button>
                 <button
                   className="psLayerToolBtn"
@@ -9932,6 +10671,97 @@ function findTextAtPoint(asset: PageAsset, x: number, y: number): TextItem | nul
           <span className="statusIcon">{statusIcon(toast)}</span>
           <span>{toast}</span>
           {toastAt ? <span className="toastTime">{formatLogTimestamp(toastAt)}</span> : null}
+        </div>
+      ) : null}
+
+      {/* ═══ Command Palette (Ctrl+K) ═══ */}
+      {commandPaletteOpen ? (
+        <div className="commandPaletteOverlay" onClick={() => setCommandPaletteOpen(false)}>
+          <div className="commandPalette" onClick={(e) => e.stopPropagation()}>
+            <div className="commandPaletteSearch">
+              <FontAwesomeIcon icon={faMagnifyingGlass} className="commandSearchIcon" />
+              <input
+                ref={commandInputRef}
+                className="commandSearchInput"
+                type="text"
+                value={commandQuery}
+                onChange={(e) => { setCommandQuery(e.target.value); setCommandIndex(0) }}
+                placeholder={ui.commandSearch}
+                autoFocus
+              />
+            </div>
+            <div className="commandPaletteList">
+              {!commandQuery.trim() && recentCommands.length > 0 ? (
+                <div className="commandPaletteSection">{ui.commandRecent}</div>
+              ) : null}
+              {filteredCommands.length > 0 ? filteredCommands.map((cmd, i) => (
+                <button
+                  key={cmd.id}
+                  className={`commandPaletteItem ${i === commandIndex ? 'active' : ''}`}
+                  onClick={() => executeCommand(cmd)}
+                  onMouseEnter={() => setCommandIndex(i)}
+                >
+                  <span className="commandItemLabel">{cmd.label}</span>
+                  {cmd.shortcut ? <span className="commandItemShortcut">{cmd.shortcut}</span> : null}
+                </button>
+              )) : (
+                <div className="commandPaletteEmpty">{ui.commandNoMatch}</div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ═══ Color Panel ═══ */}
+      {showColorPanel ? (
+        <div className="colorPanelOverlay" onClick={() => setShowColorPanel(false)}>
+          <div className="colorPanel" onClick={(e) => e.stopPropagation()}>
+            <div className="colorPanelHeader">
+              <span>{colorPanelTarget === 'fg' ? ui.foregroundColor : ui.backgroundColor}</span>
+              <button className="colorPanelClose" onClick={() => setShowColorPanel(false)}>✕</button>
+            </div>
+            <div className="colorPanelBody">
+              <input
+                type="color"
+                className="colorPanelPicker"
+                value={colorPanelTarget === 'fg' ? foregroundColor : bgColor}
+                onChange={(e) => {
+                  const hex = e.target.value
+                  if (colorPanelTarget === 'fg') { setForegroundColor(hex); setPenColor(hex) }
+                  else setBgColor(hex)
+                  pushRecentColor(hex)
+                }}
+              />
+              <div className="colorPanelInputs">
+                <label className="colorPanelLabel">Hex
+                  <input
+                    className="input colorPanelHex"
+                    value={colorPanelTarget === 'fg' ? foregroundColor : bgColor}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        if (colorPanelTarget === 'fg') { setForegroundColor(v); setPenColor(v) }
+                        else setBgColor(v)
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              {recentColors.length > 0 ? (
+                <div className="colorPanelRecent">
+                  <span className="colorPanelRecentLabel">{ui.recentColors}</span>
+                  <div className="colorPanelSwatches">
+                    {recentColors.map((c, i) => (
+                      <div key={i} className="colorSwatch" style={{ background: c }} onClick={() => {
+                        if (colorPanelTarget === 'fg') { setForegroundColor(c); setPenColor(c) }
+                        else setBgColor(c)
+                      }} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
